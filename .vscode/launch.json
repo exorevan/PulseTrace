@@ -14,7 +14,7 @@
             "subProcess": false,
             "justMyCode": false,
             "args": [
-                "config\\example.yaml"
+                "config\\lime_svc_xor.yaml"
             ]
         }
     ]
