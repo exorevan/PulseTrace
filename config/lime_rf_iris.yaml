@@ -1,0 +1,18 @@
+explanation:
+  method: lime
+
+input:
+  class_names: ['setosa', 'versicolor', 'virginica']
+  input_type: np.array
+  feature_names: ['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 'petal width (cm)']
+  function: predict_proba
+  values: [4.6, 3.6, 1.0, 0.2]
+
+model:
+  module: sklearn
+  model_obj: ensemble.RandomForestClassifier
+  weights: checkpoints/rf/sklearn_iris.pkl
+
+output:
+  name: lime_rf_iris
+  path: results

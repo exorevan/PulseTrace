@@ -2,7 +2,7 @@ import typing as ty
 
 if ty.TYPE_CHECKING:
 
-    class PulseTraceConfigExplaination(ty.TypedDict):
+    class PulseTraceConfigExplanation(ty.TypedDict):
         method: str
 
     class PulseTraceConfigInput(ty.TypedDict):
@@ -22,7 +22,7 @@ if ty.TYPE_CHECKING:
         path: str
 
     class PulseTraceConfig(ty.TypedDict):
-        explaination: PulseTraceConfigExplaination
+        explanation: PulseTraceConfigExplanation
         input: PulseTraceConfigInput
         model: PulseTraceConfigModel
         output: PulseTraceConfigOutput

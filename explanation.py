@@ -5,6 +5,7 @@ import typing as ty
 
 from lime.lime_tabular import LimeTabularExplainer
 from lime.explanation import Explanation
+import matplotlib.pyplot as plt
 from model_loader import SUPPORTED_MODELS_SKLEARN
 import numpy as np
 
@@ -15,7 +16,7 @@ if ty.TYPE_CHECKING:
 DATATYPES = {"np.array": np.array, "np.ndarray": np.array}
 
 
-class LimeExplaination:
+class LimeExplanation:
     @classmethod
     def explain_sklearn(
         cls, model: SUPPORTED_MODELS_SKLEARN, config: "PulseTraceConfig"
@@ -32,11 +33,10 @@ class LimeExplaination:
         )
 
         explanation: Explanation = explainer.explain_instance(
-            data_row=input_data,
-            predict_fn=ty.cast(
-                ty.Callable, getattr(model, config["input"]["function"])
-            ),
+            input_data,
+            ty.cast(ty.Callable, getattr(model, config["input"]["function"])),
             num_features=len(config["input"]["feature_names"]),
+            top_labels=1,
         )
 
         os.makedirs(Path(config["output"]["path"]), exist_ok=True)

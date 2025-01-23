@@ -1,4 +1,5 @@
 import argparse
+import traceback
 import typing as ty
 from pathlib import Path
 from types import ModuleType
@@ -7,7 +8,7 @@ import sklearn
 import tensorflow
 import yaml
 
-from consts import MODEL_EXPLAINATION_ACCORDANCE, MODEL_LOADER_ACCORDANCE, MODEL_MODULE
+from consts import MODEL_EXPLANATION_ACCORDANCE, MODEL_LOADER_ACCORDANCE, MODEL_MODULE
 
 if ty.TYPE_CHECKING:
     from model_loader import SUPPORTED_MODELS
@@ -19,7 +20,7 @@ if ty.TYPE_CHECKING:
 
 class PulseTracer:
     config: "PulseTraceConfig"
-    explaination: bool = False
+    explanation: bool = False
     model: "SUPPORTED_MODELS | None" = None
     module: ModuleType | None = None
 
@@ -56,12 +57,13 @@ class PulseTracer:
             if not self.module or not self.model:
                 return False
 
-            MODEL_EXPLAINATION_ACCORDANCE[self.config["explaination"]["method"]][
+            MODEL_EXPLANATION_ACCORDANCE[self.config["explanation"]["method"]][
                 self.module
             ](self.model, self.config)
 
             return True
         except Exception as e:
+            print(traceback.format_exc())
             print(e)
 
             return False
@@ -71,9 +73,9 @@ class PulseTracer:
 
         assert self.model, "Model not supported"
 
-        self.explaination = self.explain_model()
+        self.explanation = self.explain_model()
 
-        assert self.explaination, "Error while explaining"
+        assert self.explanation, "Error while explaining"
 
 
 if __name__ == "__main__":
