@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from model_loader import SUPPORTED_MODELS_SKLEARN
 import numpy as np
 
+import custom_datasets
+
 if ty.TYPE_CHECKING:
     from config import PulseTraceConfig
 
@@ -23,8 +25,12 @@ class LimeExplanation:
     ) -> None:
         input_data = DATATYPES[config["input"]["input_type"]](config["input"]["values"])
 
+        dataset_dict = dict(**config["dataset"])
+
+        dataset = getattr(custom_datasets, dataset_dict.pop("type"))(**dataset_dict)
+
         explainer = LimeTabularExplainer(
-            training_data=input_data.reshape(1, -1),
+            training_data=dataset.X,
             feature_names=config["input"][
                 "feature_names"
             ],  # Adjust to your model’s features

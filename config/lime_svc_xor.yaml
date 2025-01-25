@@ -1,3 +1,8 @@
+dataset:
+  type: DefaultDataset
+  path: xor.csv
+  delimeter: ","
+
 explanation:
   method: lime
 
@@ -6,7 +11,7 @@ input:
   input_type: np.array
   feature_names: ["X", "Y"]
   function: predict_proba
-  values: [1.0, 1.0]
+  values: [1.0, 0.0]
 
 model:
   module: sklearn

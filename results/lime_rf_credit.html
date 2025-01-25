@@ -37089,19 +37089,19 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_divNCW29B8LSSQ2Z6C"></div>
+        <div class="lime top_div" id="top_divX8XR2NPPNP22FPM"></div>
         
         <script>
-        var top_div = d3.select('#top_divNCW29B8LSSQ2Z6C').classed('lime top_div', true);
+        var top_div = d3.select('#top_divX8XR2NPPNP22FPM').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["Rejected", "Approved"], [0.09, 0.91]);
+            var pp = new lime.PredictProba(pp_svg, ["Approved", "Rejected"], [0.09, 0.91]);
             
         
         var exp_div;
-            var exp = new lime.Explanation(["Rejected", "Approved"]);
+            var exp = new lime.Explanation(["Approved", "Rejected"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
                 exp.show([["Income <= 29258.00", 0.0], ["Age <= 50.00", 0.0], ["Loan_Amount <= 298.05", 0.0], ["Debt <= 5720.30", 0.0], ["Dependents <= 3.00", 0.0], ["Credit_History_Good <= 1.00", 0.0], ["Employment_Status_Unemployed <= 0.00", 0.0]], 1, exp_div);

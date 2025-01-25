@@ -2,6 +2,11 @@ import typing as ty
 
 if ty.TYPE_CHECKING:
 
+    class PulseTraceConfigPulseTraceConfigDataset(ty.TypedDict):
+        type: str
+        path: str
+        delimeter: str
+
     class PulseTraceConfigExplanation(ty.TypedDict):
         method: str
 
@@ -22,6 +27,7 @@ if ty.TYPE_CHECKING:
         path: str
 
     class PulseTraceConfig(ty.TypedDict):
+        dataset: PulseTraceConfigDataset
         explanation: PulseTraceConfigExplanation
         input: PulseTraceConfigInput
         model: PulseTraceConfigModel
