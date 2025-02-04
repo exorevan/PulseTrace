@@ -37089,25 +37089,25 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_divRMIMLQMXKYOXEXE"></div>
+        <div class="lime top_div" id="top_div4174CPH9RBXGNDK"></div>
         
         <script>
-        var top_div = d3.select('#top_divRMIMLQMXKYOXEXE').classed('lime top_div', true);
+        var top_div = d3.select('#top_div4174CPH9RBXGNDK').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["1", "0"], [0.39423593931177064, 0.6057640606882293]);
+            var pp = new lime.PredictProba(pp_svg, ["1", "0"], [0.6040035631159325, 0.39599643688406744]);
             
         
         var exp_div;
             var exp = new lime.Explanation(["1", "0"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["0.50 < Y <= 1.00", 0.04790950810378986], ["0.50 < X <= 1.00", 0.04224526025017529]], 1, exp_div);
+                exp.show([["Y <= 0.00", 0.04639980611237513], ["0.50 < X <= 1.00", 0.045536505069440306]], 0, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_tabular([["Y", "1.00", 0.04790950810378986], ["X", "1.00", 0.04224526025017529]], 1, raw_div);
+            exp.show_raw_tabular([["Y", "0.00", 0.04639980611237513], ["X", "1.00", 0.045536505069440306]], 0, raw_div);
         
         </script>
         </body></html>

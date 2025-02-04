@@ -8,13 +8,13 @@
             "name": "Main debug",
             "type": "debugpy",
             "request": "launch",
-            "program": "main.py",
+            "program": "src\\pulsetrace\\main.py",
             "console": "integratedTerminal",
             "python": "${workspaceFolder}\\.env\\Scripts\\python.exe",
             "subProcess": false,
             "justMyCode": false,
             "args": [
-                "config\\lime_svc_xor.yaml"
+                "config\\lime_rf_iris.yaml"
             ]
         }
     ]

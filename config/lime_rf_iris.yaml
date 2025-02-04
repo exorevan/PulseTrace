@@ -1,3 +1,10 @@
+dataset:
+  type: DefaultDataset
+  path: Iris.csv
+  delimeter: ","
+  id_column: True
+  column_names: True
+
 explanation:
   method: lime
 
