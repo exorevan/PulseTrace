@@ -13,7 +13,7 @@ input:
   input_type: np.array
   feature_names: ['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 'petal width (cm)']
   function: predict_proba
-  values: [4.6, 3.6, 1.0, 0.2]
+  values: [7.0,3.2,4.7,1.4]
 
 model:
   module: sklearn
