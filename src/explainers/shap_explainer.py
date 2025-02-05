@@ -1,17 +1,28 @@
 import logging
+import typing as ty
 
 import numpy as np
 import shap
 
 from .base_explainer import BaseExplainer
 
+if ty.TYPE_CHECKING:
+    import numpy.typing as npt
+    from pandas import DataFrame, Series
+
 
 class ShapExplainer(BaseExplainer):
-    def __init__(self, config):
+    def __init__(self, config: dict[str, ty.Any]):
         super().__init__(config)
+
         self.num_features = config.get("parameters", {}).get("num_features", 10)
 
-    def explain_global(self, model, dataset):
+    @ty.override
+    def explain_global(
+        self,
+        model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
+        dataset: "DataFrame | npt.NDArray[ty.Any] | list[list[float]]",
+    ):
         logging.info("Generating global explanation using SHAP for tabular data...")
 
         # Determine feature names and convert dataset to NumPy array.
@@ -43,9 +54,15 @@ class ShapExplainer(BaseExplainer):
                 : self.num_features
             ]
         )
+
         return {"global_explanation": sorted_explanation}
 
-    def explain_local(self, model, input_instance):
+    @ty.override
+    def explain_local(
+        self,
+        model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
+        input_instance: "Series | list[float] | npt.NDArray[ty.Any]",
+    ):
         logging.info("Generating local explanation using SHAP for tabular data...")
 
         # Handle input instance as a pandas DataFrame row or a numpy array.
@@ -72,4 +89,5 @@ class ShapExplainer(BaseExplainer):
                 : self.num_features
             ]
         )
+
         return {"local_explanation": sorted_local_explanation}
