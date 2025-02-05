@@ -1,17 +1,23 @@
+import typing as ty
+
 import keras
 
+from .base_model_loader import BaseModelLoader
 
-class TensorFlowModelLoader:
-    def __init__(self, config):
-        self.config = config
 
-    def load_model(self):
-        model_path = self.config.get("path")
+class TensorFlowModelLoader(BaseModelLoader):
+    @ty.override
+    def load_model(self) -> keras.models.Model:
+        model_path: ty.Any = self.config.get("path")
+
         if not model_path:
             raise ValueError("TensorFlow model path not provided in configuration.")
+
         try:
-            model = keras.models.load_model(model_path)
+            model = ty.cast(keras.models.Model, keras.models.load_model(model_path))
 
             return model
         except Exception as e:
-            raise Exception(f"Error loading TensorFlow model from {model_path}: {e}")
+            raise Exception(
+                f"Error loading TensorFlow model from {model_path}: {e}"
+            ) from e

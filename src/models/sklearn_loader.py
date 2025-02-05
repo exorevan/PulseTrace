@@ -1,15 +1,27 @@
 import os
+import typing as ty
 
 import joblib
 
+from .base_model_loader import BaseModelLoader
 
-class SklearnModelLoader:
-    def __init__(self, config):
-        self.config = config
 
-    def load_model(self):
-        model_path = self.config.get("path")
-        if not model_path or not os.path.exists(model_path):
+class SklearnModelLoader(BaseModelLoader):
+    @ty.override
+    def load_model(self) -> ty.Any:
+        model_path: ty.Any = self.config.get("path")
+
+        if not model_path:
+            raise ValueError("scikit-learn model path not provided in configuration.")
+
+        if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
-        model = joblib.load(model_path)
-        return model
+
+        try:
+            model = joblib.load(model_path)
+
+            return model
+        except Exception as e:
+            raise Exception(
+                f"Error loading scikit-learn model from {model_path}: {e}"
+            ) from e
