@@ -5,7 +5,7 @@ pip install -e .
 Пример запуска:
 
 ```
-python main.py --cfg config/config.yaml
+python .\src\main.py --cfg config/config.yaml
 ```
 
 TODOs:
