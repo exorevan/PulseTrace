@@ -1,9 +1,14 @@
 import typing as ty
 from abc import ABC, abstractmethod
 
+if ty.TYPE_CHECKING:
+    from types.config import ModelPulseTraceConfig
+
 
 class BaseModelLoader(ABC):
-    def __init__(self, config: dict[str, ty.Any]) -> None:
+    config: "ModelPulseTraceConfig"
+
+    def __init__(self, config: "ModelPulseTraceConfig") -> None:
         self.config = config
 
     @abstractmethod

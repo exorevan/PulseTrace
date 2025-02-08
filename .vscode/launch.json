@@ -8,13 +8,14 @@
             "name": "Main debug",
             "type": "debugpy",
             "request": "launch",
-            "program": "src\\pulsetrace\\main.py",
+            "program": "src\\main.py",
             "console": "integratedTerminal",
             "python": "${workspaceFolder}\\.env\\Scripts\\python.exe",
             "subProcess": false,
             "justMyCode": false,
             "args": [
-                "config\\lime_rf_iris.yaml"
+                "--cfg",
+                "src\\configs\\sklearn_iris_lime.yaml"
             ]
         }
     ]

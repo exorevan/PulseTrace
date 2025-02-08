@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import typing as ty
 from pathlib import Path
 
 import yaml
@@ -26,6 +27,13 @@ from utils.config_manager import (
 )  # Optional: if you want to use a custom config manager.
 from utils.logger import setup_logging
 
+if ty.TYPE_CHECKING:
+    from types.config import (
+        DatasetPulseTraceConfig,
+        ModelPulseTraceConfig,
+        PulseTraceConfig,
+    )
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -41,10 +49,10 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_configuration(cfg_path: Path):
+def load_configuration(cfg_path: Path) -> "PulseTraceConfig":
     try:
         with open(cfg_path, "r") as stream:
-            config = yaml.safe_load(stream)
+            config = ty.cast("PulseTraceConfig", yaml.safe_load(stream))
 
         return config
 
@@ -53,7 +61,7 @@ def load_configuration(cfg_path: Path):
         sys.exit(1)
 
 
-def get_model_loader(model_config):
+def get_model_loader(model_config: "ModelPulseTraceConfig"):
     model_type = model_config.get("type", "").lower()
 
     if model_type == "tf":
@@ -67,7 +75,7 @@ def get_model_loader(model_config):
         sys.exit(1)
 
 
-def get_dataset_loader(dataset_config):
+def get_dataset_loader(dataset_config: "DatasetPulseTraceConfig"):
     dataset_type = dataset_config.get("type", "").lower()
 
     if dataset_type == "csv":
@@ -147,12 +155,14 @@ def main():
     elif mode == "local":
         local_config = config.get("local", {})
         input_path = local_config.get("input_path")
+
         if not input_path or not os.path.exists(input_path):
             logging.error("Local input instance not provided or file not found.")
             sys.exit(1)
+
         # For local explanation, assume that the same dataset loader can be reused to load a single input
         # instance from the provided path (or you could implement a specialized loader method).
-        input_instance = dataset_loader.load_data(input_path)
+        input_instance = dataset_loader.load_data(input_path, input=True)
         results = run_local_explanation(model, explainer, input_instance)
     else:
         logging.error(

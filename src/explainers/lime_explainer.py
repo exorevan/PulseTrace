@@ -14,27 +14,32 @@ class LimeExplainer(BaseExplainer):
 
     def explain_global(self, model, dataset):
         logging.info("Generating global explanation using LIME for tabular data...")
-        # Determine feature names and convert dataset to NumPy array.
-        if hasattr(dataset, "columns"):
-            feature_names = list(dataset.columns)
-            data = dataset.values
-        else:
-            data = np.array(dataset)
-            feature_names = [f"f{i}" for i in range(data.shape[1])]
 
-        # Determine mode based on the model's capabilities.
+        # Определяем режим работы на основе возможностей модели.
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
-        explainer = LimeTabularExplainer(
-            data, feature_names=feature_names, mode=mode, sample_size=self.num_samples
+        # Используем функцию предсказания, соответствующую режиму.
+        predict_fn = (
+            model.predict_proba
+            if mode == "classification" and hasattr(model, "predict_proba")
+            else model.predict
         )
 
-        # Compute local explanations for a subset of the data and aggregate feature contributions.
-        n_samples = min(10, data.shape[0])
+        # Создаём LimeTabularExplainer без недопустимого параметра sample_size.
+        explainer = LimeTabularExplainer(
+            dataset.get_x(),
+            feature_names=dataset.feature_names,
+            mode=mode,
+            discretize_continuous=True,
+        )
+
+        # Вычисляем локальные объяснения для части данных и агрегируем влияние признаков.
+        n_samples = min(10, len(dataset))
         aggregated_explanations = {}
+
         for i in range(n_samples):
-            instance = data[i]
+            instance = dataset[i]
             explanation = explainer.explain_instance(
-                instance, model.predict, num_features=self.num_features
+                instance, predict_fn, num_features=self.num_features
             )
             for feat, weight in explanation.as_list():
                 aggregated_explanations.setdefault(feat, []).append(weight)
@@ -43,6 +48,7 @@ class LimeExplainer(BaseExplainer):
             feat: sum(weights) / len(weights)
             for feat, weights in aggregated_explanations.items()
         }
+
         return {"global_explanation": averaged_explanation}
 
     def explain_local(self, model, input_instance):
