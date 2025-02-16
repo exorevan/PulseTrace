@@ -7,12 +7,16 @@ import shap
 from .base_explainer import BaseExplainer
 
 if ty.TYPE_CHECKING:
+    from pltypes.config import ExplainerPulseTraceConfig
+
     import numpy.typing as npt
     from pandas import DataFrame, Series
+    from datasets.base_data_loader import PTDataSet
 
 
+@ty.final
 class ShapExplainer(BaseExplainer):
-    def __init__(self, config: dict[str, ty.Any]):
+    def __init__(self, config: "ExplainerPulseTraceConfig"):
         super().__init__(config)
 
         self.num_features = config.get("parameters", {}).get("num_features", 10)
@@ -21,7 +25,7 @@ class ShapExplainer(BaseExplainer):
     def explain_global(
         self,
         model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
-        dataset: "DataFrame | npt.NDArray[ty.Any] | list[list[float]]",
+        dataset: "PTDataSet",
     ):
         logging.info("Generating global explanation using SHAP for tabular data...")
 
@@ -61,7 +65,7 @@ class ShapExplainer(BaseExplainer):
     def explain_local(
         self,
         model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
-        input_instance: "Series | list[float] | npt.NDArray[ty.Any]",
+        input_instance: "PTDataSet",
     ):
         logging.info("Generating local explanation using SHAP for tabular data...")
 

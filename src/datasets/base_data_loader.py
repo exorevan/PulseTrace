@@ -1,12 +1,12 @@
 import typing as ty
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
 if ty.TYPE_CHECKING:
-    from types.config import DatasetPulseTraceConfig
+    from pltypes.config import DatasetPulseTraceConfig
 
 
 class PTDataSet:
@@ -17,12 +17,18 @@ class PTDataSet:
     _target_name: str
     _feature_names: list[str] = []
 
+    _classes: npt.NDArray[ty.Any]
+    _classes_num: int = 0
+
     def __init__(self, data: pd.DataFrame, target: pd.Series):
         self.columns = data.columns
         self.data = data.values
         self.indexes = data.index
         self.target = target
         self.target_name = target.name
+
+        self._classes = np.unique(self.target)
+        self._classes_num = len(self.classes)
 
     def __len__(self) -> int:
         return len(self.target)
@@ -74,6 +80,14 @@ class PTDataSet:
     @target_name.setter
     def target_name(self, x: ty.Any) -> None:
         self._target_name = str(x)
+
+    @property
+    def classes(self) -> npt.NDArray[ty.Any]:
+        return self._classes
+
+    @property
+    def classes_num(self) -> int:
+        return self._classes_num
 
     def get_x(self) -> npt.NDArray[np.float64]:
         return self.data

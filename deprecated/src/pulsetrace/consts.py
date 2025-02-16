@@ -1,4 +1,4 @@
-from types import ModuleType
+from pltypes import ModuleType
 
 import sklearn
 import tensorflow

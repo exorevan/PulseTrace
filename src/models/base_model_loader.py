@@ -2,7 +2,7 @@ import typing as ty
 from abc import ABC, abstractmethod
 
 if ty.TYPE_CHECKING:
-    from types.config import ModelPulseTraceConfig
+    from pltypes.config import ModelPulseTraceConfig
 
 
 class BaseModelLoader(ABC):

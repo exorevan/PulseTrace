@@ -2,7 +2,7 @@ import argparse
 import traceback
 import typing as ty
 from pathlib import Path
-from types import ModuleType
+from pltypes import ModuleType
 
 import sklearn
 import tensorflow

@@ -2,21 +2,24 @@ import typing as ty
 from abc import ABC, abstractmethod
 
 if ty.TYPE_CHECKING:
+    from pltypes.config import ExplainerPulseTraceConfig
+
     import numpy.typing as npt
     from pandas import DataFrame, Series
+    from datasets.base_data_loader import PTDataSet
 
 
 class BaseExplainer(ABC):
-    config: dict[str, ty.Any]
+    config: "ExplainerPulseTraceConfig"
 
-    def __init__(self, config: dict[str, ty.Any]) -> None:
+    def __init__(self, config: "ExplainerPulseTraceConfig") -> None:
         self.config = config
 
     @abstractmethod
     def explain_global(
         self,
         model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
-        dataset: "DataFrame | npt.NDArray[ty.Any] | list[list[float]]",
+        dataset: "PTDataSet",
     ) -> dict[str, ty.Any]:
         """
         Generate a global explanation for the provided dataset.
@@ -33,7 +36,7 @@ class BaseExplainer(ABC):
     def explain_local(
         self,
         model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
-        input_instance: "Series | list[float] | npt.NDArray[ty.Any]",
+        input_instance: "PTDataSet",
     ) -> dict[str, ty.Any]:
         """
         Generate a local explanation for a specific input instance.

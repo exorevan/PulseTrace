@@ -4,7 +4,7 @@ import typing as ty
 from datasets.base_data_loader import BaseDataLoader
 
 if ty.TYPE_CHECKING:
-    from types.config import DatasetPulseTraceConfig
+    from pltypes.config import DatasetPulseTraceConfig
 
 
 class TextDataLoader(BaseDataLoader):

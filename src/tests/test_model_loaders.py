@@ -1,6 +1,6 @@
 import importlib.util
 import os
-from types import ModuleType
+from pltypes import ModuleType
 
 import joblib
 import keras

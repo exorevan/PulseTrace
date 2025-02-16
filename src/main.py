@@ -28,7 +28,7 @@ from utils.config_manager import (
 from utils.logger import setup_logging
 
 if ty.TYPE_CHECKING:
-    from types.config import (
+    from pltypes.config import (
         DatasetPulseTraceConfig,
         ModelPulseTraceConfig,
         PulseTraceConfig,
