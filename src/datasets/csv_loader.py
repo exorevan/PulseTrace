@@ -22,7 +22,7 @@ class CSVDataLoader(BaseDataLoader):
         csv_params = self.config.get("csv_params", {})
         delimiter = csv_params.get("delimiter", ",")
         index_col = csv_params.get("index_col", None)
-        header = csv_params.get("header", 0)
+        header = csv_params.get("header", None)
 
         data = pd.read_csv(
             file_path, delimiter=delimiter, index_col=index_col, header=header

@@ -87,9 +87,9 @@ class LimeExplainer(BaseExplainer):
         # Expect the input instance as a pandas DataFrame row or a 1D array.
         if hasattr(input_instance, "columns"):
             feature_names = list(input_instance.columns)
-            instance = input_instance.iloc[0].values
+            instance = input_instance.data
             # In practice, background data should be a representative sample; here we use the input as fallback.
-            background_data = input_instance.values
+            background_data = input_instance.data
         else:
             instance = np.array(input_instance)
             feature_names = [f"f{i}" for i in range(len(instance))]
@@ -102,7 +102,7 @@ class LimeExplainer(BaseExplainer):
             mode=mode,
         )
         explanation = explainer.explain_instance(
-            instance, model.predict, num_features=self.num_features
+            instance[0], model.predict, num_features=self.num_features
         )
 
         return {"local_explanation": dict(explanation.as_list())}

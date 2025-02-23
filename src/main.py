@@ -154,15 +154,12 @@ def main():
         results = run_global_explanation(model, dataset, explainer)
     elif mode == "local":
         local_config = config.get("local", {})
-        input_path = local_config.get("input_path")
-
-        if not input_path or not os.path.exists(input_path):
-            logging.error("Local input instance not provided or file not found.")
-            sys.exit(1)
 
         # For local explanation, assume that the same dataset loader can be reused to load a single input
         # instance from the provided path (or you could implement a specialized loader method).
-        input_instance = dataset_loader.load_data(input_path, input=True)
+        input_instance = get_dataset_loader(local_config.get("dataset", {})).load_data(
+            input=True
+        )
         results = run_local_explanation(model, explainer, input_instance)
     else:
         logging.error(

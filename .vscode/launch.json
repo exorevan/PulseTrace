@@ -15,7 +15,7 @@
             "justMyCode": false,
             "args": [
                 "--cfg",
-                "src\\configs\\sklearn_iris_lime.yaml"
+                "src\\configs\\sklearn_iris_lime_local.yaml"
             ]
         }
     ]
