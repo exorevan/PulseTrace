@@ -6,27 +6,20 @@ from pathlib import Path
 
 import yaml
 
-from datasets.csv_loader import CSVDataLoader
-from datasets.image_loader import ImageDataLoader
-from datasets.text_loader import TextDataLoader
-
-from explainers.lime_explainer import LimeExplainer
-from explainers.shap_explainer import ShapExplainer
-from models.pytorch_loader import PyTorchModelLoader
-from models.sklearn_loader import SklearnModelLoader
-
-from models.tensorflow_loader import TensorFlowModelLoader
-
+from datasets import CSVDataLoader, ImageDataLoader, TextDataLoader
+from explainers import LimeExplainer, ShapExplainer
+from models import PyTorchModelLoader, SklearnModelLoader, TensorFlowModelLoader
 from utils.logger import setup_logging
 
 if ty.TYPE_CHECKING:
-    from explainers.base_explainer import BaseExplainer
     from datasets.base_data_loader import PTDataSet
+    from explainers.base_explainer import BaseExplainer
+    from pltypes import PLDataLoader, PLExplainer, PLModelLoader
     from pltypes.config import (
         DatasetPulseTraceConfig,
+        ExplainerPulseTraceConfig,
         ModelPulseTraceConfig,
         PulseTraceConfig,
-        ExplainerPulseTraceConfig,
     )
     from pltypes.models import PLModel
 
@@ -57,7 +50,7 @@ def load_configuration(cfg_path: Path) -> "PulseTraceConfig":
         sys.exit(1)
 
 
-def get_model_loader(model_config: "ModelPulseTraceConfig"):
+def get_model_loader(model_config: "ModelPulseTraceConfig") -> "PLModelLoader":
     model_type = model_config.get("type", "").lower()
 
     if model_type == "tf":
@@ -71,7 +64,7 @@ def get_model_loader(model_config: "ModelPulseTraceConfig"):
         sys.exit(1)
 
 
-def get_dataset_loader(dataset_config: "DatasetPulseTraceConfig"):
+def get_dataset_loader(dataset_config: "DatasetPulseTraceConfig") -> "PLDataLoader":
     dataset_type = dataset_config.get("type", "").lower()
 
     if dataset_type == "csv":
@@ -87,7 +80,7 @@ def get_dataset_loader(dataset_config: "DatasetPulseTraceConfig"):
         sys.exit(1)
 
 
-def get_explainer(explainer_config: "ExplainerPulseTraceConfig"):
+def get_explainer(explainer_config: "ExplainerPulseTraceConfig") -> "PLExplainer":
     explainer_type = explainer_config.get("type", "").lower()
 
     if explainer_type == "lime":
@@ -124,7 +117,7 @@ def run_local_explanation(
     return result
 
 
-def main():
+def main() -> None:
     args = parse_args()
     config = load_configuration(args.cfg)
 
