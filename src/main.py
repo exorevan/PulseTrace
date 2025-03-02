@@ -110,11 +110,11 @@ def run_global_explanation(model, dataset, explainer):
     return result
 
 
-def run_local_explanation(model, explainer, input_instance):
+def run_local_explanation(model, explainer, input_instance, dataset):
     logging.info("Running local explanation for the provided input instance...")
 
     # The explain_local method should accept a single input instance.
-    result = explainer.explain_local(model, input_instance)
+    result = explainer.explain_local(model, input_instance, dataset)
     logging.info("Local explanation completed.")
 
     return result
@@ -160,7 +160,7 @@ def main():
         input_instance = get_dataset_loader(local_config.get("dataset", {})).load_data(
             input=True
         )
-        results = run_local_explanation(model, explainer, input_instance)
+        results = run_local_explanation(model, explainer, input_instance, dataset)
     else:
         logging.error(
             "Invalid application mode specified in configuration. Use 'global' or 'local'."

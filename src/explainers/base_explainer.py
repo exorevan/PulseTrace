@@ -2,11 +2,11 @@ import typing as ty
 from abc import ABC, abstractmethod
 
 if ty.TYPE_CHECKING:
-    from pltypes.config import ExplainerPulseTraceConfig
-
     import numpy.typing as npt
     from pandas import DataFrame, Series
+
     from datasets.base_data_loader import PTDataSet
+    from pltypes.config import ExplainerPulseTraceConfig
 
 
 class BaseExplainer(ABC):

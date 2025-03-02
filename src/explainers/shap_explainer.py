@@ -7,11 +7,11 @@ import shap
 from .base_explainer import BaseExplainer
 
 if ty.TYPE_CHECKING:
-    from pltypes.config import ExplainerPulseTraceConfig
-
     import numpy.typing as npt
     from pandas import DataFrame, Series
+
     from datasets.base_data_loader import PTDataSet
+    from pltypes.config import ExplainerPulseTraceConfig
 
 
 @ty.final

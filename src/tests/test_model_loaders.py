@@ -1,6 +1,5 @@
 import importlib.util
 import os
-from pltypes import ModuleType
 
 import joblib
 import keras
@@ -10,6 +9,7 @@ import torch
 from models.pytorch_loader import PyTorchModelLoader
 from models.sklearn_loader import SklearnModelLoader
 from models.tensorflow_loader import TensorFlowModelLoader
+from pltypes import ModuleType
 
 
 # Dummy model for TensorFlow and scikit-learn.
