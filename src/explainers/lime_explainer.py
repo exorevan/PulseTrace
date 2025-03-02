@@ -11,7 +11,7 @@ if ty.TYPE_CHECKING:
 
     from datasets.base_data_loader import PTDataSet
     from pltypes.config import ExplainerPulseTraceConfig
-    from pltypes.models import Model
+    from pltypes.models import PLModel
 
 
 @ty.final
@@ -23,7 +23,7 @@ class LimeExplainer(BaseExplainer):
 
     @ty.override
     def explain_global(
-        self, model: "Model", dataset: "PTDataSet"
+        self, model: "PLModel", dataset: "PTDataSet"
     ) -> dict[str, dict[str, float]]:
         logging.info("Generating global explanation using LIME for tabular data...")
 
@@ -76,7 +76,7 @@ class LimeExplainer(BaseExplainer):
 
     @ty.override
     def explain_local(
-        self, model: "Model", input_instance: "PTDataSet", dataset: "PTDataSet"
+        self, model: "PLModel", input_instance: "PTDataSet", dataset: "PTDataSet"
     ) -> dict[str, dict[str, float]]:
         logging.info("Generating local explanation using LIME for tabular data...")
 

@@ -34,9 +34,7 @@ class BaseExplainer(ABC):
 
     @abstractmethod
     def explain_local(
-        self,
-        model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
-        input_instance: "PTDataSet",
+        self, model: ty.Any, input_instance: "PTDataSet", dataset: "PTDataSet"
     ) -> dict[str, ty.Any]:
         """
         Generate a local explanation for a specific input instance.
