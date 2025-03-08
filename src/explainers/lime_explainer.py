@@ -1,3 +1,4 @@
+from collections import OrderedDict, defaultdict
 import logging
 import typing as ty
 
@@ -24,15 +25,12 @@ class LimeExplainer(BaseExplainer):
     @ty.override
     def explain_global(
         self, model: "PLModel", dataset: "PTDataSet"
-    ) -> dict[str, dict[str, float]]:
+    ) -> dict[str, dict[int | str, OrderedDict[str, float]]]:
         logging.info("Generating global explanation using LIME for tabular data...")
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
-
         predict_fn: ty.Callable[..., ty.Any] = (
-            model.predict_proba
-            if mode == "classification" and hasattr(model, "predict_proba")
-            else model.predict
+            model.predict_proba if mode == "classification" else model.predict
         )
 
         explainer = LimeTabularExplainer(
@@ -43,7 +41,9 @@ class LimeExplainer(BaseExplainer):
         )
 
         n_samples = min(10, len(dataset))
-        aggregated_explanations = {label: {} for label in dataset.classes}
+        classes = dataset.classes
+        num_classes = len(classes)
+        aggregated_explanations = {label: defaultdict(list) for label in classes}
 
         for i in range(n_samples):
             instance = dataset[i]
@@ -53,47 +53,48 @@ class LimeExplainer(BaseExplainer):
                     instance,
                     predict_fn,
                     num_features=self.num_features,
-                    labels=range(len(dataset.classes)),
+                    labels=range(num_classes),
                 ),
             )
 
-            for idx, label in enumerate(dataset.classes):
+            for idx, label in enumerate(classes):
                 explanation_list = ty.cast(
                     list[tuple[str, float]], explanation.as_list(label=idx)
                 )
 
                 for feat, weight in explanation_list:
-                    aggregated_explanations[label].setdefault(feat, []).append(weight)
+                    aggregated_explanations[label][feat].append(weight)
 
-        averaged_explanation = {
+        averaged_explanation: dict[str | int, dict[str, float]] = {
             label: {
                 feat: sum(weights) / len(weights) for feat, weights in feats.items()
             }
             for label, feats in aggregated_explanations.items()
         }
 
-        return {"global_explanation": averaged_explanation}
+        sorted_explanation = {
+            label: self.sort_dict_by_columns(explanation, dataset.columns)
+            for label, explanation in averaged_explanation.items()
+        }
+
+        return {"global_explanation": sorted_explanation}
 
     @ty.override
     def explain_local(
         self, model: "PLModel", input_instance: "PTDataSet", dataset: "PTDataSet"
-    ) -> dict[str, dict[str, float]]:
+    ) -> dict[str, dict[int | str, OrderedDict[str, float]]]:
         logging.info("Generating local explanation using LIME for tabular data...")
 
-        if hasattr(input_instance, "columns"):
-            feature_names = list(input_instance.columns)
+        if hasattr(dataset, "columns"):
+            feature_names = list(dataset.columns)
             instance = input_instance.data
-            background_data = input_instance.data
         else:
             instance = np.array(input_instance)
             feature_names = [f"f{i}" for i in range(len(instance))]
-            background_data = np.array([instance])  # Fallback background data.
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
         predict_fn: ty.Callable[..., ty.Any] = (
-            model.predict_proba
-            if mode == "classification" and hasattr(model, "predict_proba")
-            else model.predict
+            model.predict_proba if mode == "classification" else model.predict
         )
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
@@ -110,4 +111,13 @@ class LimeExplainer(BaseExplainer):
             ),
         )
 
-        return {"local_explanation": dict(explanation.as_list())}
+        predict = predict_fn([instance[0]])[0]
+
+        max_index = np.argmax(predict)
+        sorted_explanation = {
+            dataset.classes[max_index]: self.sort_dict_by_columns(
+                dict(explanation.as_list()), dataset.columns
+            )
+        }
+
+        return {"local_explanation": sorted_explanation}

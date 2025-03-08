@@ -15,7 +15,7 @@
             "justMyCode": false,
             "args": [
                 "--cfg",
-                "src\\configs\\sklearn_iris_lime_local.yaml"
+                "src\\configs\\sklearn_alzheimer_lime_local.yaml"
             ]
         }
     ]

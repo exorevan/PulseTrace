@@ -1,10 +1,8 @@
+from collections import OrderedDict
 import typing as ty
 from abc import ABC, abstractmethod
 
 if ty.TYPE_CHECKING:
-    import numpy.typing as npt
-    from pandas import DataFrame, Series
-
     from datasets.base_data_loader import PTDataSet
     from pltypes.config import ExplainerPulseTraceConfig
 
@@ -14,6 +12,34 @@ class BaseExplainer(ABC):
 
     def __init__(self, config: "ExplainerPulseTraceConfig") -> None:
         self.config = config
+
+    def find_matching_key(self, column: str, keys: list[str]) -> str | None:
+        for key in keys:
+            if column in key:
+                return key
+
+        return None
+
+    def sort_dict_by_columns(
+        self, averaged_explanation: dict[str, float], dataset_columns: list[str]
+    ) -> OrderedDict[str, float]:
+        column_to_key = {}
+        for column in dataset_columns:
+            matching_key = self.find_matching_key(column, averaged_explanation.keys())
+            if matching_key:
+                column_to_key[column] = matching_key
+
+        sorted_dict = OrderedDict()
+        for column in dataset_columns:
+            if column in column_to_key:
+                key = column_to_key[column]
+                sorted_dict[key] = averaged_explanation[key]
+
+        for key in averaged_explanation:
+            if key not in sorted_dict:
+                sorted_dict[key] = averaged_explanation[key]
+
+        return sorted_dict
 
     @abstractmethod
     def explain_global(

@@ -1,0 +1,35 @@
+app:
+  mode: "local"              # Режим работы: "global" для глобального объяснения, "local" для локального.
+  interactive: false          # Запуск в интерактивном режиме
+  output_format: "console"    # Формат вывода: консоль, JSON, HTML и т.д.
+
+logging:
+  level: "INFO"               # Уровень логирования: DEBUG, INFO, WARNING, ERROR.
+  file: ""                    # Путь к файлу логов, если оставить пустым – вывод в консоль.
+
+model:
+  type: "sklearn"             # Тип модели: здесь используется scikit-learn.
+  path: "weights/alzheimer_log_reg.pkl"
+
+dataset:
+  path: "datasets/alzheimers_disease_data.csv"   # Путь к CSV-файлу с датасетом
+  type: "csv"                 # Тип датасета: CSV
+  csv_params:
+    delimiter: ","            # Разделитель полей
+    header: 0                 # Номер строки с заголовками
+    index_col: null           # Колонка-индекс (если используется)
+  preprocess:
+    normalize: false          # Параметр нормализации (false для данного примера)
+    additional_steps: []      # Дополнительные шаги препроцессинга
+
+explainer:
+  type: "lime"                # Метод объяснения: "lime", "shap" и т.д.
+  parameters:
+    num_features: 20          # Количество признаков для вывода в объяснении.
+    num_samples: 5000         # Количество сэмплов для генерации объяснения.
+    additional_params: {}     # Дополнительные параметры для объяснителя.
+
+local:
+  dataset:
+    path: "C:\\Users\\exore\\OneDrive\\Desktop\\diploma\\PulseTrace\\datasets\\alzheimer_sample.csv"  # Путь к файлу с примером входных данных для локального объяснения.
+    type: "csv"
