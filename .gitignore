@@ -172,4 +172,3 @@ cython_debug/
 
 # Pulse Trace ignores
 temp/
-weights/
