@@ -1,0 +1,16 @@
+[project]
+name = "pulsetrace"
+version = "0.1.0"
+description = "XAI application"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "keras>=3.9.0",
+    "lime>=0.2.0.1",
+    "matplotlib>=3.10.1",
+    "pandas>=2.2.3",
+    "pyyaml>=6.0.2",
+    "scikit-learn>=1.6.1",
+    "tensorflow>=2.18.0",
+    "torch>=2.6.0",
+]
