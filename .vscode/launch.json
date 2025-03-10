@@ -8,14 +8,14 @@
             "name": "Main debug",
             "type": "debugpy",
             "request": "launch",
-            "program": "src\\main.py",
+            "program": "${workspaceFolder}\\src\\pulsetrace\\main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}\\.env\\Scripts\\python.exe",
+            "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "subProcess": false,
             "justMyCode": false,
             "args": [
                 "--cfg",
-                "src\\configs\\sklearn_alzheimer_lime_local.yaml"
+                "configs\\sklearn_house_lime.yaml"
             ]
         }
     ]

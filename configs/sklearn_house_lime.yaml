@@ -9,10 +9,10 @@ logging:
 
 model:
   type: "sklearn"
-  path: "weights/alzheimer_log_reg.pkl"
+  path: "weights/house_lin_reg.pkl"
 
 dataset:
-  path: "datasets/alzheimers_disease_data.csv"
+  path: "datasets/house_pricing_dataset.csv"
   type: "csv"
   csv_params:
     delimiter: ","

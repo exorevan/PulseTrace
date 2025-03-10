@@ -24,7 +24,7 @@ class ShapExplainer(BaseExplainer):
     @ty.override
     def explain_global(
         self,
-        model: ty.Any,  # e.g.: tf.keras.Model | torch.nn.Module | sklearn.base.BaseEstimator | etc.
+        model: ty.Any,
         dataset: "PTDataSet",
     ):
         logging.info("Generating global explanation using SHAP for tabular data...")

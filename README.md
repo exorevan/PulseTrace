@@ -1,15 +1,16 @@
 Установка зависимостей
 
 ```
-pip install -r requirements.in
-pip install -r requirements.dev
-pip install -e .
+curl -LsSf https://astral.sh/uv/install.sh | sh
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv pip install -r requirements.in
+uv pip install -r requirements.dev
 ```
 
 Пример запуска:
 
 ```
-python .\src\main.py --cfg config/config.yaml
+python .\src\pulsetrace\main.py --cfg config/config.yaml
 ```
 
 TODOs:
