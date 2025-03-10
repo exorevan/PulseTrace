@@ -43,7 +43,9 @@ class LimeExplainer(BaseExplainer):
         n_samples = min(10, len(dataset))
         classes = dataset.classes
         num_classes = len(classes)
-        aggregated_explanations = {label: defaultdict(list) for label in classes}
+        aggregated_explanations = {
+            label: defaultdict(lambda: [0.0, 0]) for label in classes
+        }
 
         for i in range(n_samples):
             instance = dataset[i]
@@ -63,7 +65,9 @@ class LimeExplainer(BaseExplainer):
                 )
 
                 for feat, weight in explanation_list:
-                    aggregated_explanations[label][feat].append(weight)
+                    acc = aggregated_explanations[label][feat]
+                    acc[0] += weight
+                    acc[1] += 1
 
         averaged_explanation: dict[str | int, dict[str, float]] = {
             label: {
@@ -72,10 +76,17 @@ class LimeExplainer(BaseExplainer):
             for label, feats in aggregated_explanations.items()
         }
 
-        sorted_explanation = {
-            label: self.sort_dict_by_columns(explanation, dataset.columns)
-            for label, explanation in averaged_explanation.items()
-        }
+        if mode == "regression":
+            sorted_explanation = {
+                dataset.target_name: self.sort_dict_by_columns(
+                    next(iter(averaged_explanation.values())), dataset.columns
+                )
+            }
+        else:
+            sorted_explanation = {
+                label: self.sort_dict_by_columns(explanation, dataset.columns)
+                for label, explanation in averaged_explanation.items()
+            }
 
         return {"global_explanation": sorted_explanation}
 
@@ -120,4 +131,8 @@ class LimeExplainer(BaseExplainer):
             )
         }
 
-        return {"local_explanation": sorted_explanation}
+        return {
+            "local_explanation": {
+                dataset.target_name: next(iter(sorted_explanation.values()))
+            }
+        }

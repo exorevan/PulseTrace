@@ -1,5 +1,5 @@
 app:
-  mode: "global"
+  mode: "local"
   interactive: false
   output_format: "console"
 
@@ -28,3 +28,8 @@ explainer:
     num_features: 199
     num_samples: 5000
     additional_params: {}
+
+local:
+  dataset:
+    path: "C:\\Users\\exore\\OneDrive\\Desktop\\diploma\\PulseTrace\\datasets\\house_sample.csv"
+    type: "csv"
