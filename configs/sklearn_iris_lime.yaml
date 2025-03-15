@@ -28,6 +28,3 @@ explainer:
     num_features: 10
     num_samples: 5000
     additional_params: {}
-
-local:
-  input_path: "datasets/sample_input.json"

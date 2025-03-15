@@ -1,5 +1,5 @@
 app:
-  mode: "local"
+  mode: "global"
   interactive: false
   output_format: "console"
 
@@ -8,8 +8,8 @@ logging:
   file: ""
 
 model:
-  type: "sklearn"
-  path: "weights/house_lin_reg.pkl"
+  type: "keras"
+  path: "weights/house_lin_reg.keras"
 
 dataset:
   path: "datasets/house_pricing_dataset.csv"
@@ -32,5 +32,5 @@ explainer:
 
 local:
   dataset:
-    path: "datasets/house_sample.csv"
+    path: "datasets/sample_input.csv"
     type: "csv"

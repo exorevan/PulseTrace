@@ -6,8 +6,8 @@ import pandas as pd
 from .base_data_loader import BaseDataLoader, PTDataSet
 
 if ty.TYPE_CHECKING:
-    from src.pulsetrace.pltypes.config import DatasetPulseTraceConfig
     from src.pulsetrace.datasets_.base_data_loader import PTDataSet
+    from src.pulsetrace.pltypes.config import DatasetPulseTraceConfig
 
 
 class CSVDataLoader(BaseDataLoader):

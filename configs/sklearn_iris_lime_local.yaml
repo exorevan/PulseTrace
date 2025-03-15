@@ -31,5 +31,5 @@ explainer:
 
 local:
   dataset:
-    path: "C:\\Users\\exore\\OneDrive\\Desktop\\diploma\\PulseTrace\\datasets\\sample_input.csv"
+    path: "datasets/sample_input.csv"
     type: "csv"

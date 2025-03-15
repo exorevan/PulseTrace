@@ -3,7 +3,6 @@ import typing as ty
 from pathlib import Path
 
 import yaml
-
 from datasets_ import CSVDataLoader, ImageDataLoader, TextDataLoader
 from explainers import LimeExplainer, ShapExplainer
 from logger import pllogger
@@ -54,7 +53,9 @@ def load_configuration(cfg_path: Path) -> "PulseTraceConfig":
         raise
 
 
-def create_component(config: dict[str, ty.Any], component_type: str, components_map: dict[str, ty.Any]) -> ty.Any:
+def create_component(
+    config: dict[str, ty.Any], component_type: str, components_map: dict[str, ty.Any]
+) -> ty.Any:
     """Create components based on configuration."""
     component_id = config.get("type", "").lower()
     component_class = components_map.get(component_id)
@@ -156,7 +157,9 @@ def run_explanation(config: dict, model: "PLModel", dataset: "PTDataSet") -> dic
 
     if mode == "local":
         local_config = config.get("local", {})
-        input_instance = get_dataset_loader(local_config.get("dataset", {})).load_data(input_=True)
+        input_instance = get_dataset_loader(local_config.get("dataset", {})).load_data(
+            input_=True
+        )
 
         return run_local_explanation(model, explainer, input_instance, dataset)
 

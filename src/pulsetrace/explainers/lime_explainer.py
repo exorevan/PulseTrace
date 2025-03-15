@@ -23,7 +23,9 @@ class LimeExplainer(BaseExplainer):
         self.num_features = config.get("parameters", {}).get("num_features", 10)
         self.num_samples = config.get("parameters", {}).get("num_samples", 5000)
 
-    def _create_explainer(self, dataset: "PTDataSet", model: "PLModel", feature_names=None) -> LimeTabularExplainer:
+    def _create_explainer(
+        self, dataset: "PTDataSet", model: "PLModel", feature_names=None
+    ) -> LimeTabularExplainer:
         """Create a LIME tabular explainer with appropriate configuration."""
         names = feature_names or dataset.feature_names
         mode = "classification" if hasattr(model, "predict_proba") else "regression"

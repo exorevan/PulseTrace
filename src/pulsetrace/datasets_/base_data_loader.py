@@ -14,7 +14,13 @@ class PTDataSet:
     """Dataset container for machine learning data and targets."""
 
     __slots__ = (
-        "_classes", "_classes_num", "_columns", "_data", "_indexes", "_target", "_target_name"
+        "_classes",
+        "_classes_num",
+        "_columns",
+        "_data",
+        "_indexes",
+        "_target",
+        "_target_name",
     )
 
     def __init__(self, data: pd.DataFrame, target: pd.Series) -> None:
