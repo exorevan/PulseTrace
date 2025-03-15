@@ -26,6 +26,7 @@ if ty.TYPE_CHECKING:
         delimiter: str
         header: int
         index_col: str
+        only_x: bool
 
     class DatasetPreprocessPulseTraceConfig(TypedDict):
         normalize: bool

@@ -7,6 +7,7 @@ from .base_data_loader import BaseDataLoader, PTDataSet
 
 if ty.TYPE_CHECKING:
     from src.pulsetrace.pltypes.config import DatasetPulseTraceConfig
+    from src.pulsetrace.datasets_.base_data_loader import PTDataSet
 
 
 class CSVDataLoader(BaseDataLoader):
@@ -24,6 +25,7 @@ class CSVDataLoader(BaseDataLoader):
         delimiter = csv_params.get("delimiter", ",")
         index_col = csv_params.get("index_col", None)
         header = csv_params.get("header", None)
+        only_x = csv_params.get("only_x", False)
 
         data = pd.read_csv(
             file_path, delimiter=delimiter, index_col=index_col, header=header
@@ -31,6 +33,12 @@ class CSVDataLoader(BaseDataLoader):
 
         if input_:
             return PTDataSet(data, pd.Series())
+
+        if only_x:
+            return PTDataSet(
+                data,
+                pd.Series(),
+            )
 
         return PTDataSet(
             ty.cast(pd.DataFrame, data.iloc[:, :-1]),

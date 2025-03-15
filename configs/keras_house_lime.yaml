@@ -18,6 +18,7 @@ dataset:
     delimiter: ","
     header: 0
     index_col: null
+    only_x: true
   preprocess:
     normalize: false
     additional_steps: []
