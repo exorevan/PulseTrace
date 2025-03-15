@@ -8,9 +8,8 @@ from .base_explainer import BaseExplainer
 
 if ty.TYPE_CHECKING:
     import numpy.typing as npt
-    from pandas import DataFrame, Series
-
     from datasets.base_data_loader import PTDataSet
+    from pandas import DataFrame, Series
     from pltypes.config import ExplainerPulseTraceConfig
 
 

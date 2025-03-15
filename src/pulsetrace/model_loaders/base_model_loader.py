@@ -15,7 +15,8 @@ class BaseModelLoader(ABC):
     def load_model(self) -> ty.Any:
         """
         Load and return the machine learning model based on the configuration provided.
-        :return: A machine learning model instance.
-        """
 
+        :return: A machine learning model instance.
+
+        """
         pass

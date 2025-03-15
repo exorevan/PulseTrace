@@ -1,6 +1,6 @@
-from collections import OrderedDict
 import typing as ty
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
 if ty.TYPE_CHECKING:
     from datasets.base_data_loader import PTDataSet

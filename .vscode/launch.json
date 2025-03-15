@@ -8,14 +8,14 @@
             "name": "Main debug",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}\\src\\pulsetrace\\main.py",
+            "program": "${workspaceFolder}/src/pulsetrace/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+            "python": "${workspaceFolder}/.venv/bin/python3.12",
             "subProcess": false,
             "justMyCode": false,
             "args": [
                 "--cfg",
-                "configs\\keras_house_lime.yaml"
+                "configs/keras_house_lime.yaml"
             ]
         }
     ]

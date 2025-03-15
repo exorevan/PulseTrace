@@ -1,25 +1,24 @@
-import os
 import typing as ty
+from pathlib import Path
 
 import pandas as pd
 
 from .base_data_loader import BaseDataLoader, PTDataSet
 
-from pltypes.config import DatasetPulseTraceConfig
-
 if ty.TYPE_CHECKING:
-    from pltypes.config import DatasetPulseTraceConfig
+    from src.pulsetrace.pltypes.config import DatasetPulseTraceConfig
 
 
 class CSVDataLoader(BaseDataLoader):
-    def __init__(self, config: "DatasetPulseTraceConfig"):
+    def __init__(self, config: "DatasetPulseTraceConfig") -> None:
         super().__init__(config)
 
-    def load_data(self, path: str | None = None, input: bool = False) -> PTDataSet:
+    def load_data(self, path: str | None = None, *, input_: bool = False) -> PTDataSet:
         file_path = path if path else self.config.get("path")
 
-        if not file_path or not os.path.exists(file_path):
-            raise FileNotFoundError(f"CSV file not found: {file_path}")
+        if not file_path or not Path(file_path).exists():
+            msg = f"CSV file not found: {file_path}"
+            raise FileNotFoundError(msg)
 
         csv_params = self.config.get("csv_params", {})
         delimiter = csv_params.get("delimiter", ",")
@@ -30,10 +29,10 @@ class CSVDataLoader(BaseDataLoader):
             file_path, delimiter=delimiter, index_col=index_col, header=header
         )
 
-        if input:
+        if input_:
             return PTDataSet(data, pd.Series())
-        else:
-            return PTDataSet(
-                ty.cast(pd.DataFrame, data.iloc[:, :-1]),
-                ty.cast(pd.Series, data.iloc[:, -1]),
-            )
+
+        return PTDataSet(
+            ty.cast(pd.DataFrame, data.iloc[:, :-1]),
+            ty.cast(pd.Series, data.iloc[:, -1]),
+        )

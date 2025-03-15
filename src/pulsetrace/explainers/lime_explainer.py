@@ -1,6 +1,6 @@
-from collections import OrderedDict, defaultdict
 import logging
 import typing as ty
+from collections import OrderedDict, defaultdict
 
 import numpy as np
 from lime.lime_tabular import LimeTabularExplainer
@@ -8,9 +8,8 @@ from lime.lime_tabular import LimeTabularExplainer
 from .base_explainer import BaseExplainer
 
 if ty.TYPE_CHECKING:
-    from lime.explanation import Explanation
-
     from datasets.base_data_loader import PTDataSet
+    from lime.explanation import Explanation
     from pltypes.config import ExplainerPulseTraceConfig
     from pltypes.models import PLModel
 

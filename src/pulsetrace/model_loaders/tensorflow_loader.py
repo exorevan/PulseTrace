@@ -18,6 +18,5 @@ class TensorFlowModelLoader(BaseModelLoader):
 
             return model
         except Exception as e:
-            raise Exception(
-                f"Error loading TensorFlow model from {model_path}: {e}"
-            ) from e
+            msg = f"Error loading TensorFlow model from {model_path}: {e}"
+            raise Exception(msg) from e
