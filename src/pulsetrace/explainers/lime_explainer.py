@@ -16,39 +16,50 @@ if ty.TYPE_CHECKING:
 
 @ty.final
 class LimeExplainer(BaseExplainer):
-    def __init__(self, config: "ExplainerPulseTraceConfig"):
+    """LIME explainer for tabular data."""
+
+    def __init__(self, config: "ExplainerPulseTraceConfig") -> None:
         super().__init__(config)
         self.num_features = config.get("parameters", {}).get("num_features", 10)
         self.num_samples = config.get("parameters", {}).get("num_samples", 5000)
+
+    def _create_explainer(self, dataset: "PTDataSet", model: "PLModel", feature_names=None) -> LimeTabularExplainer:
+        """Create a LIME tabular explainer with appropriate configuration."""
+        names = feature_names or dataset.feature_names
+        mode = "classification" if hasattr(model, "predict_proba") else "regression"
+
+        return LimeTabularExplainer(
+            dataset.data,
+            feature_names=names,
+            mode=mode,
+            discretize_continuous=True,
+        )
+
+    def _get_prediction_function(self, model: "PLModel") -> ty.Callable[..., ty.Any]:
+        """Get the appropriate prediction function based on model type."""
+        return model.predict_proba if hasattr(model, "predict_proba") else model.predict
 
     @ty.override
     def explain_global(
         self, model: "PLModel", dataset: "PTDataSet"
     ) -> dict[str, dict[int | str, OrderedDict[str, float]]]:
+        """Generate global explanation using LIME for tabular data."""
         logging.info("Generating global explanation using LIME for tabular data...")
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
-        predict_fn: ty.Callable[..., ty.Any] = (
-            model.predict_proba if mode == "classification" else model.predict
-        )
+        predict_fn = self._get_prediction_function(model)
 
-        explainer = LimeTabularExplainer(
-            dataset.get_x(),
-            feature_names=dataset.feature_names,
-            mode=mode,
-            discretize_continuous=True,
-        )
+        explainer = self._create_explainer(dataset, model)
 
         n_samples = min(10, len(dataset))
         classes = dataset.classes
         num_classes = len(classes)
-        aggregated_explanations = {
-            label: defaultdict(lambda: [0.0, 0]) for label in classes
-        }
+
+        feature_totals = {label: {} for label in classes}
+        feature_counts = {label: {} for label in classes}
 
         for i in range(n_samples):
             instance = dataset[i]
-
             explanation = ty.cast(
                 "Explanation",
                 explainer.explain_instance(
@@ -60,20 +71,20 @@ class LimeExplainer(BaseExplainer):
             )
 
             for idx, label in enumerate(classes):
-                explanation_list = ty.cast(
-                    list[tuple[str, float]], explanation.as_list(label=idx)
-                )
-
-                for feat, weight in explanation_list:
-                    acc = aggregated_explanations[label][feat]
-                    acc[0] += weight
-                    acc[1] += 1
+                for feat, weight in explanation.as_list(label=idx):
+                    if feat not in feature_totals[label]:
+                        feature_totals[label][feat] = weight
+                        feature_counts[label][feat] = 1
+                    else:
+                        feature_totals[label][feat] += weight
+                        feature_counts[label][feat] += 1
 
         averaged_explanation: dict[str | int, dict[str, float]] = {
             label: {
-                feat: sum(weights) / len(weights) for feat, weights in feats.items()
+                feat: feature_totals[label][feat] / feature_counts[label][feat]
+                for feat in feature_totals[label]
             }
-            for label, feats in aggregated_explanations.items()
+            for label in classes
         }
 
         if mode == "regression":
@@ -94,6 +105,12 @@ class LimeExplainer(BaseExplainer):
     def explain_local(
         self, model: "PLModel", input_instance: "PTDataSet", dataset: "PTDataSet"
     ) -> dict[str, dict[int | str, OrderedDict[str, float]]]:
+        """
+        Generate local explanation for a single instance using LIME.
+
+        Explains which features most influenced the prediction for a specific instance.
+
+        """
         logging.info("Generating local explanation using LIME for tabular data...")
 
         if hasattr(dataset, "columns"):
@@ -104,17 +121,10 @@ class LimeExplainer(BaseExplainer):
             feature_names = [f"f{i}" for i in range(len(instance))]
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
-        predict_fn: ty.Callable[..., ty.Any] = (
-            model.predict_proba if mode == "classification" else model.predict
-        )
+        predict_fn = self._get_prediction_function(model)
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
-        explainer = LimeTabularExplainer(
-            dataset.get_x(),
-            feature_names=feature_names,
-            mode=mode,
-            discretize_continuous=True,
-        )
+        explainer = self._create_explainer(dataset, model, feature_names)
         explanation = ty.cast(
             "Explanation",
             explainer.explain_instance(
@@ -124,12 +134,19 @@ class LimeExplainer(BaseExplainer):
 
         predict = predict_fn([instance[0]])[0]
 
-        max_index = np.argmax(predict)
-        sorted_explanation = {
-            dataset.classes[max_index]: self.sort_dict_by_columns(
-                dict(explanation.as_list()), dataset.columns
-            )
-        }
+        if mode == "classification":
+            max_index = np.argmax(predict)
+            sorted_explanation = {
+                dataset.classes[max_index]: self.sort_dict_by_columns(
+                    dict(explanation.as_list()), dataset.columns
+                )
+            }
+        else:
+            sorted_explanation = {
+                dataset.target_name: self.sort_dict_by_columns(
+                    dict(explanation.as_list()), dataset.columns
+                )
+            }
 
         return {
             "local_explanation": {

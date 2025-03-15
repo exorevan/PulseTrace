@@ -1,9 +1,9 @@
 import argparse
-import sys
 import typing as ty
 from pathlib import Path
 
 import yaml
+
 from datasets_ import CSVDataLoader, ImageDataLoader, TextDataLoader
 from explainers import LimeExplainer, ShapExplainer
 from logger import pllogger
@@ -188,7 +188,7 @@ def main() -> None:
 
     except Exception as e:
         pllogger.exception(f"Error running application: {e!s}")
-        sys.exit(1)
+        raise
 
 
 if __name__ == "__main__":

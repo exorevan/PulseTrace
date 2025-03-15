@@ -30,14 +30,14 @@ class PTDataSet:
         self.data = data
         self.indexes = data.index
         self.target = target
-        self.target_name = target.name
+        self.target_name = target.name if target.name else "Prediction"
 
-        self._classes = np.unique(self.target)
+        self._classes = np.unique(self.target) if self.target else np.array([1])
         self._classes_num = len(self._classes)
 
     def __len__(self) -> int:
-        """Return the number of samples in the dataset."""
-        return len(self.target)
+        """Return the number of points in the dataset."""
+        return len(self.data)
 
     def __getitem__(self, key) -> npt.NDArray[np.float64] | None:
         """Access data by index."""
