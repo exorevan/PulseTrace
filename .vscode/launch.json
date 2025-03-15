@@ -15,7 +15,7 @@
             "justMyCode": false,
             "args": [
                 "--cfg",
-                "configs\\sklearn_house_lime_local.yaml"
+                "configs\\keras_house_lime.yaml"
             ]
         }
     ]

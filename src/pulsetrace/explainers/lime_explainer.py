@@ -49,6 +49,7 @@ class LimeExplainer(BaseExplainer):
 
         for i in range(n_samples):
             instance = dataset[i]
+
             explanation = ty.cast(
                 "Explanation",
                 explainer.explain_instance(

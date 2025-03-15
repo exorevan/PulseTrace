@@ -6,9 +6,9 @@ from pathlib import Path
 
 import yaml
 
-from datasets import CSVDataLoader, ImageDataLoader, TextDataLoader
-from explainers import LimeExplainer, ShapExplainer
-from models import PyTorchModelLoader, SklearnModelLoader, TensorFlowModelLoader
+from datasets_ import CSVDataLoader, ImageDataLoader, TextDataLoader
+from pulsetrace.explainers import LimeExplainer, ShapExplainer
+from model_loaders import PyTorchModelLoader, SklearnModelLoader, TensorFlowModelLoader
 from utils.logger import setup_logging
 
 if ty.TYPE_CHECKING:
@@ -53,7 +53,7 @@ def load_configuration(cfg_path: Path) -> "PulseTraceConfig":
 def get_model_loader(model_config: "ModelPulseTraceConfig") -> "PLModelLoader":
     model_type = model_config.get("type", "").lower()
 
-    if model_type == "tf":
+    if model_type in {"tf", "keras"}:
         return TensorFlowModelLoader(model_config)
     elif model_type == "pt":
         return PyTorchModelLoader(model_config)
@@ -61,7 +61,9 @@ def get_model_loader(model_config: "ModelPulseTraceConfig") -> "PLModelLoader":
         return SklearnModelLoader(model_config)
     else:
         logging.error("Unsupported model type specified. Use 'tf', 'pt', or 'sklearn'.")
-        sys.exit(1)
+        raise TypeError(
+            "Unsupported model type specified. Use 'tf', 'pt', or 'sklearn'."
+        )
 
 
 def get_dataset_loader(dataset_config: "DatasetPulseTraceConfig") -> "PLDataLoader":

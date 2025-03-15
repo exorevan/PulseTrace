@@ -3,7 +3,7 @@ import typing as ty
 
 from PIL import Image, ImageFile
 
-from datasets.base_data_loader import BaseDataLoader
+from .base_data_loader import BaseDataLoader
 
 if ty.TYPE_CHECKING:
     from pltypes.config import DatasetPulseTraceConfig

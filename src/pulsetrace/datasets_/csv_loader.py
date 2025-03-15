@@ -3,7 +3,9 @@ import typing as ty
 
 import pandas as pd
 
-from datasets.base_data_loader import BaseDataLoader, PTDataSet
+from .base_data_loader import BaseDataLoader, PTDataSet
+
+from pltypes.config import DatasetPulseTraceConfig
 
 if ty.TYPE_CHECKING:
     from pltypes.config import DatasetPulseTraceConfig

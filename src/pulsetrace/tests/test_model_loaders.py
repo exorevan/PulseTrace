@@ -3,12 +3,11 @@ import os
 
 import joblib
 import keras
-import pytest
 import torch
 
-from models.pytorch_loader import PyTorchModelLoader
-from models.sklearn_loader import SklearnModelLoader
-from models.tensorflow_loader import TensorFlowModelLoader
+from model_loaders.pytorch_loader import PyTorchModelLoader
+from model_loaders.sklearn_loader import SklearnModelLoader
+from model_loaders.tensorflow_loader import TensorFlowModelLoader
 from pltypes import ModuleType
 
 

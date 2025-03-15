@@ -1,4 +1,4 @@
-from explainers.lime_explainer import LimeExplainer
-from explainers.shap_explainer import ShapExplainer
+from .lime_explainer import LimeExplainer
+from .shap_explainer import ShapExplainer
 
 __all__ = ["LimeExplainer", "ShapExplainer"]

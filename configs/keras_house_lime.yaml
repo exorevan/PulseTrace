@@ -1,0 +1,30 @@
+app:
+  mode: "global"
+  interactive: false
+  output_format: "console"
+
+logging:
+  level: "INFO"
+  file: ""
+
+model:
+  type: "keras"
+  path: "weights/house_lin_reg.keras"
+
+dataset:
+  path: "datasets/house_pricing_dataset.csv"
+  type: "csv"
+  csv_params:
+    delimiter: ","
+    header: 0
+    index_col: null
+  preprocess:
+    normalize: false
+    additional_steps: []
+
+explainer:
+  type: "lime"
+  parameters:
+    num_features: 199
+    num_samples: 5000
+    additional_params: {}
