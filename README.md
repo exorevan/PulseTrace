@@ -14,7 +14,6 @@ python .\src\pulsetrace\main.py --cfg config/config.yaml
 ```
 
 TODOs:
-+ 1 keras model
 + 3 tf models
 + arima
 SHAP local/global

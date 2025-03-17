@@ -6,7 +6,7 @@ import numpy.typing as npt
 import pandas as pd
 
 if ty.TYPE_CHECKING:
-    from src.pulsetrace.pltypes.config import DatasetPulseTraceConfig
+    from pulsetrace.pltypes.config import DatasetPulseTraceConfig
 
 
 @ty.final

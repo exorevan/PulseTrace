@@ -1,6 +1,6 @@
-from src.pulsetrace.datasets import CSVDataLoader, ImageDataLoader, TextDataLoader
-from src.pulsetrace.explainers import LimeExplainer, ShapExplainer
-from src.pulsetrace.model_loaders import (
+from pulsetrace.datasets_ import CSVDataLoader, ImageDataLoader, TextDataLoader
+from pulsetrace.explainers import LimeExplainer, ShapExplainer
+from pulsetrace.model_loaders import (
     PyTorchModelLoader,
     SklearnModelLoader,
     TensorFlowModelLoader,

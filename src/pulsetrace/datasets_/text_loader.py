@@ -1,10 +1,11 @@
 import os
+from pathlib import Path
 import typing as ty
 
-from .base_data_loader import BaseDataLoader
+from pulsetrace.datasets_.base_data_loader import BaseDataLoader
 
 if ty.TYPE_CHECKING:
-    from pltypes.config import DatasetPulseTraceConfig
+    from pulsetrace.pltypes.config import DatasetPulseTraceConfig
 
 
 class TextDataLoader(BaseDataLoader):
@@ -14,12 +15,11 @@ class TextDataLoader(BaseDataLoader):
     def load_data(self, path: str | None = None):
         file_path = path if path else self.config.get("path")
 
-        if not file_path or not os.path.exists(file_path):
-            raise FileNotFoundError(f"Text file not found: {file_path}")
+        if not file_path or not Path(file_path).exists():
+            msg = f"Text file not found: {file_path}"
+            raise FileNotFoundError(msg)
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with Path(file_path).open("r") as f:
             data = f.readlines()
 
-        data = [line.strip() for line in data]
-
-        return data
+        return [line.strip() for line in data]

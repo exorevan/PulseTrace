@@ -3,10 +3,10 @@ import typing as ty
 
 from PIL import Image, ImageFile
 
-from .base_data_loader import BaseDataLoader
+from pulsetrace.datasets_.base_data_loader import BaseDataLoader
 
 if ty.TYPE_CHECKING:
-    from pltypes.config import DatasetPulseTraceConfig
+    from pulsetrace.pltypes.config import DatasetPulseTraceConfig
 
 
 class ImageDataLoader(BaseDataLoader):

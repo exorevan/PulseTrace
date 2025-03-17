@@ -4,13 +4,11 @@ import typing as ty
 import numpy as np
 import shap
 
-from .base_explainer import BaseExplainer
+from pulsetrace.explainers.base_explainer import BaseExplainer
 
 if ty.TYPE_CHECKING:
-    import numpy.typing as npt
-    from datasets.base_data_loader import PTDataSet
-    from pandas import DataFrame, Series
-    from pltypes.config import ExplainerPulseTraceConfig
+    from pulsetrace.datasets_.base_data_loader import PTDataSet
+    from pulsetrace.pltypes.config import ExplainerPulseTraceConfig
 
 
 @ty.final
