@@ -2,9 +2,10 @@
 
 ```
 curl -LsSf https://astral.sh/uv/install.sh | sh
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-uv pip install -r requirements.in
-uv pip install -r requirements.dev
+pip install uv
+uv venv
+uv sync
+uv pip install -e .
 ```
 
 Пример запуска:
@@ -17,5 +18,6 @@ TODOs:
 + 3 tf models
 + arima
 SHAP local/global
+Add ALIBI library XAI methods
 pytorch model with custom class
 png generate / html generate
