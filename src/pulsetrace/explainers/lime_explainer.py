@@ -6,12 +6,14 @@ import numpy as np
 from lime.lime_tabular import LimeTabularExplainer
 
 from .base_explainer import BaseExplainer
+from pulsetrace.logger import ptlogger
 
 if ty.TYPE_CHECKING:
-    from datasets.base_data_loader import PTDataSet
     from lime.explanation import Explanation
-    from pltypes.config import ExplainerPulseTraceConfig
-    from pltypes.models import PLModel
+
+    from pulsetrace.datasets_.base_data_loader import PTDataSet
+    from pulsetrace.pltypes.config import ExplainerPulseTraceConfig
+    from pulsetrace.pltypes.models import PLModel
 
 
 @ty.final
@@ -46,7 +48,7 @@ class LimeExplainer(BaseExplainer):
         self, model: "PLModel", dataset: "PTDataSet"
     ) -> dict[str, dict[int | str, OrderedDict[str, float]]]:
         """Generate global explanation using LIME for tabular data."""
-        logging.info("Generating global explanation using LIME for tabular data...")
+        ptlogger.info("Generating global explanation using LIME for tabular data...")
 
         mode = "classification" if hasattr(model, "predict_proba") else "regression"
         predict_fn = self._get_prediction_function(model)
@@ -57,8 +59,8 @@ class LimeExplainer(BaseExplainer):
         classes = dataset.classes
         num_classes = len(classes)
 
-        feature_totals = {label: {} for label in classes}
-        feature_counts = {label: {} for label in classes}
+        feature_totals = {label: defaultdict(float) for label in classes}
+        feature_counts = {label: defaultdict(int) for label in classes}
 
         for i in range(n_samples):
             instance = dataset[i]
@@ -75,9 +77,6 @@ class LimeExplainer(BaseExplainer):
             for idx, label in enumerate(classes):
                 for feat, weight in explanation.as_list(label=idx):
                     if feat not in feature_totals[label]:
-                        feature_totals[label][feat] = weight
-                        feature_counts[label][feat] = 1
-                    else:
                         feature_totals[label][feat] += weight
                         feature_counts[label][feat] += 1
 
@@ -113,7 +112,7 @@ class LimeExplainer(BaseExplainer):
         Explains which features most influenced the prediction for a specific instance.
 
         """
-        logging.info("Generating local explanation using LIME for tabular data...")
+        ptlogger.info("Generating local explanation using LIME for tabular data...")
 
         if hasattr(dataset, "columns"):
             feature_names = list(dataset.columns)

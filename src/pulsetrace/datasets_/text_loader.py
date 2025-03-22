@@ -17,7 +17,7 @@ class TextDataLoader(BaseDataLoader):
         if not file_path or not os.path.exists(file_path):
             raise FileNotFoundError(f"Text file not found: {file_path}")
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = f.readlines()
 
         data = [line.strip() for line in data]

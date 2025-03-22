@@ -31,16 +31,10 @@ class CSVDataLoader(BaseDataLoader):
             file_path, delimiter=delimiter, index_col=index_col, header=header
         )
 
-        if input_:
+        if input_ or only_x:
             return PTDataSet(data, pd.Series())
 
-        if only_x:
-            return PTDataSet(
-                data,
-                pd.Series(),
-            )
-
         return PTDataSet(
-            ty.cast(pd.DataFrame, data.iloc[:, :-1]),
-            ty.cast(pd.Series, data.iloc[:, -1]),
+            data.iloc[:, :-1],
+            data.iloc[:, -1],
         )

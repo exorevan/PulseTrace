@@ -14,7 +14,7 @@ class ConfigManager:
 
     def load_config(self) -> dict[str, ty.Any]:
         try:
-            with open(self.config_path, "r") as stream:
+            with open(self.config_path) as stream:
                 config = yaml.safe_load(stream)
 
                 if not isinstance(config, dict):

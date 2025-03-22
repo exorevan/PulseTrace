@@ -1,3 +1,3 @@
 import logging
 
-pllogger = logging.getLogger(__name__)
+ptlogger = logging.getLogger(__name__)
