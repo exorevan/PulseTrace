@@ -1,0 +1,6 @@
+{
+  "pythonVersion": "3.12",
+  "extraPaths": ["src"],
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "warning"
+}

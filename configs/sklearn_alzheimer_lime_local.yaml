@@ -1,35 +1,27 @@
 app:
-  mode: "local"
-  interactive: false
-  output_format: "console"
+  mode: local
+  output_format: console
 
 logging:
-  level: "INFO"
-  file: ""
+  level: INFO
 
 model:
-  type: "sklearn"
-  path: "weights/alzheimer_log_reg.pkl"
+  type: sklearn
+  path: weights/alzheimer_log_reg.pkl
 
 dataset:
-  path: "datasets/alzheimers_disease_data.csv"
-  type: "csv"
-  csv_params:
-    delimiter: ","
-    header: 0
-    index_col: null
-  preprocess:
-    normalize: false
-    additional_steps: []
+  type: csv
+  path: datasets/alzheimers_disease_data.csv
+  delimiter: ","
+  header: 0
 
 explainer:
-  type: "lime"
-  parameters:
-    num_features: 20
-    num_samples: 5000
-    additional_params: {}
+  type: lime
+  num_features: 20
+  num_samples: 5000
 
 local:
   dataset:
-    path: "datasets/alzheimer_sample.csv"
-    type: "csv"
+    type: csv
+    path: datasets/alzheimer_sample.csv
+    only_x: true

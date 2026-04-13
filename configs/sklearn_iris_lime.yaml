@@ -1,30 +1,22 @@
 app:
-  mode: "global"
-  interactive: false
-  output_format: "console"
+  mode: global
+  output_format: console
 
 logging:
-  level: "INFO"
-  file: ""
+  level: INFO
 
 model:
-  type: "sklearn"
-  path: "weights/iris_random_forest.pkl"
+  type: sklearn
+  path: weights/iris_random_forest.pkl
 
 dataset:
-  path: "datasets/Iris.csv"
-  type: "csv"
-  csv_params:
-    delimiter: ","
-    header: 0
-    index_col: "Id"
-  preprocess:
-    normalize: false
-    additional_steps: []
+  type: csv
+  path: datasets/Iris.csv
+  delimiter: ","
+  header: 0
+  index_col: Id
 
 explainer:
-  type: "lime"
-  parameters:
-    num_features: 10
-    num_samples: 5000
-    additional_params: {}
+  type: lime
+  num_features: 10
+  num_samples: 5000

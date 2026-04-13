@@ -1,18 +1,20 @@
+from __future__ import annotations
+
 import logging
-import typing as ty
 
-if ty.TYPE_CHECKING:
-    from pltypes.config import LoggingPulseTraceConfig
+from pulsetrace.config.schema import LoggingConfig
 
 
-def setup_logging(logging_config: "LoggingPulseTraceConfig") -> None:
-    level_str: str = logging_config.get("level", "INFO").upper()
-
-    level: int = getattr(logging, level_str, logging.INFO)
-    log_file: str | None = logging_config.get("file", None)
+def setup_logging(config: LoggingConfig) -> None:
+    handlers: list[logging.Handler] = []
+    if config.file:
+        handlers.append(logging.FileHandler(config.file))
+    else:
+        handlers.append(logging.StreamHandler())
 
     logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        filename=log_file if log_file else None,
+        level=getattr(logging, config.level, logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers,
+        force=True,
     )
