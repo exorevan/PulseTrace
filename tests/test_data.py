@@ -111,3 +111,26 @@ def test_load_csv_only_x_y_dtype(csv_without_target):
     config = CsvDatasetConfig(type="csv", path=csv_without_target, only_x=True)
     ds = load_csv(config)
     assert ds.y.dtype == object
+
+
+def test_dataset_default_data_type():
+    ds = Dataset(
+        X=np.zeros((3, 2)),
+        y=np.array(["a", "b", "c"], dtype=object),
+        feature_names=["f1", "f2"],
+        target_name="label",
+        classes=np.array(["a", "b", "c"], dtype=object),
+    )
+    assert ds.data_type == "tabular"
+
+
+def test_dataset_custom_data_type():
+    ds = Dataset(
+        X=np.zeros((3, 10)),
+        y=np.array([0, 1, 0], dtype=object),
+        feature_names=[f"t{i}" for i in range(10)],
+        target_name="label",
+        classes=None,
+        data_type="timeseries",
+    )
+    assert ds.data_type == "timeseries"

@@ -1,5 +1,5 @@
 app:
-  mode: local
+  mode: global
   output_format: console
 
 logging:
@@ -14,13 +14,5 @@ dataset:
   name: iris
 
 explainer:
-  type: lime
+  type: shap
   num_features: 10
-  num_samples: 5000
-
-local:
-  dataset:
-    type: builtin
-    name: iris
-    only_x: true
-    max_samples: 1

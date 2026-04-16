@@ -48,14 +48,47 @@ class CsvDatasetConfig(_Base):
     only_x: bool = False
 
 
-# Single type for now; becomes a discriminated union when image/text loaders are added
-DatasetConfig = CsvDatasetConfig
+class TimeSeriesDatasetConfig(_Base):
+    type: ty.Literal["timeseries"]
+    path: Path
+    n_timesteps: int | None = None   # validated against actual shape when provided
+    target_col: str | None = None    # CSV only: name of the label column
+    only_x: bool = False             # true = no target column (local mode input)
+
+
+class ImageDatasetConfig(_Base):
+    type: ty.Literal["image"]
+    path: Path
+    image_size: list[int] | None = None   # [H, W]; validated as 2-element list
+    only_x: bool = False
+
+    @model_validator(mode="after")
+    def _validate_image_size(self) -> "ImageDatasetConfig":
+        if self.image_size is not None and len(self.image_size) != 2:
+            raise ValueError("image_size must have exactly 2 elements [H, W]")
+        return self
+
+
+class BuiltinDatasetConfig(_Base):
+    type: ty.Literal["builtin"]
+    name: str
+    only_x: bool = False
+    split: ty.Literal["train", "test"] = "train"   # keras only; ignored for sklearn
+    max_samples: int | None = None                  # cap number of samples loaded
+
+
+DatasetConfig = ty.Annotated[
+    CsvDatasetConfig | TimeSeriesDatasetConfig | ImageDatasetConfig | BuiltinDatasetConfig,
+    Field(discriminator="type"),
+]
 
 
 class ExplainerConfig(_Base):
     type: ty.Literal["lime", "shap"]
     num_features: int = 10
-    num_samples: int = 5000  # used by LIME only
+    num_samples: int = 5000    # LIME perturbations per instance
+    global_samples: int = 10   # instances explained in global mode
+    n_segments: int = 10       # LIME time-series: contiguous windows per series
 
 
 class LocalConfig(_Base):
@@ -64,7 +97,7 @@ class LocalConfig(_Base):
 
 class AppConfig(_Base):
     mode: ty.Literal["global", "local"] = "global"
-    output_format: ty.Literal["console"] = "console"
+    output_format: ty.Literal["console", "json", "html"] = "console"
 
 
 class LoggingConfig(_Base):

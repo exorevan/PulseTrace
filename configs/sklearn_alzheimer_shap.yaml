@@ -1,5 +1,5 @@
 app:
-  mode: local
+  mode: global
   output_format: console
 
 logging:
@@ -16,13 +16,5 @@ dataset:
   header: 0
 
 explainer:
-  type: lime
+  type: shap
   num_features: 20
-  num_samples: 5000
-
-local:
-  dataset:
-    type: csv
-    path: datasets/alzheimer_sample.csv
-    header: null
-    only_x: true

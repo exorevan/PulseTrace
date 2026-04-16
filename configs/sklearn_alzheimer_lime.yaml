@@ -19,3 +19,4 @@ explainer:
   type: lime
   num_features: 20
   num_samples: 5000
+  global_samples: 10

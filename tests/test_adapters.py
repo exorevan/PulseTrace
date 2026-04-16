@@ -171,3 +171,20 @@ def test_pytorch_regression_predict_proba_raises():
     adapter = PyTorchAdapter(model, task="regression")
     with pytest.raises(NotImplementedError):
         adapter.predict_proba(np.random.rand(3, 4).astype(np.float32))
+
+
+def test_as_frame_skips_dataframe_for_ndim_gt_2():
+    """_as_frame must not attempt pd.DataFrame on N-D arrays (e.g. image batches)."""
+    import pandas as pd
+    from sklearn.linear_model import LogisticRegression
+
+    # Train on a DataFrame so the model stores feature_names_in_
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    model = LogisticRegression(max_iter=200).fit(df, [0, 1, 0])
+    adapter = SklearnAdapter(model)
+    assert adapter._feature_names == ["a", "b"]
+
+    # 4D array (image batch) — must be returned unchanged, no DataFrame attempt
+    X_4d = np.ones((2, 8, 8, 3), dtype=np.float32)
+    result = adapter._as_frame(X_4d)
+    assert result is X_4d

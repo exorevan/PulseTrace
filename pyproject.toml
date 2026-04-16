@@ -9,6 +9,8 @@ dependencies = [
     "lime>=0.2.0.1",
     "matplotlib>=3.10.1",
     "pandas>=2.2.3",
+    "pillow>=9.0",
+    "scikit-image>=0.19",
     "pydantic>=2.0",
     "pyyaml>=6.0.2",
     "scikit-learn>=1.6.1",
@@ -23,3 +25,11 @@ pulsetrace = "pulsetrace.main:cli"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

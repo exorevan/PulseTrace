@@ -29,7 +29,7 @@ def run(cfg_path: Path) -> None:
         instance = load_dataset(config.local.dataset)
         result = explainer.explain_local(adapter, instance, dataset)
 
-    render(result)
+    render(result, output_format=config.app.output_format)
 
 
 def cli() -> None:

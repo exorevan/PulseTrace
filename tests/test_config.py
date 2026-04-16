@@ -175,3 +175,45 @@ def test_empty_config_raises(tmp_path):
     cfg.write_text("")
     with pytest.raises(ValueError, match="empty"):
         load_config(cfg)
+
+
+# ---------------------------------------------------------------------------
+# TimeSeriesDatasetConfig + n_segments
+# ---------------------------------------------------------------------------
+
+from pulsetrace.config.schema import TimeSeriesDatasetConfig, ExplainerConfig
+
+
+def test_timeseries_dataset_config_parses():
+    cfg = TimeSeriesDatasetConfig(type="timeseries", path="datasets/my.npy")
+    assert cfg.type == "timeseries"
+    assert cfg.only_x is False
+    assert cfg.n_timesteps is None
+    assert cfg.target_col is None
+
+
+def test_timeseries_dataset_config_only_x():
+    cfg = TimeSeriesDatasetConfig(type="timeseries", path="datasets/my.npy", only_x=True)
+    assert cfg.only_x is True
+
+
+def test_explainer_config_has_n_segments():
+    cfg = ExplainerConfig(type="lime", num_features=5)
+    assert cfg.n_segments == 10  # default
+
+
+def test_explainer_config_custom_n_segments():
+    cfg = ExplainerConfig(type="lime", num_features=5, n_segments=20)
+    assert cfg.n_segments == 20
+
+
+def test_load_config_with_timeseries_dataset(tmp_path):
+    import yaml
+    cfg_path = tmp_path / "ts.yaml"
+    cfg_path.write_text(yaml.dump({
+        "model": {"type": "sklearn", "path": "weights/m.pkl"},
+        "dataset": {"type": "timeseries", "path": "datasets/my.npy"},
+        "explainer": {"type": "shap", "num_features": 5},
+    }))
+    cfg = load_config(cfg_path)
+    assert cfg.dataset.type == "timeseries"

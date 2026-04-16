@@ -15,6 +15,7 @@ class Dataset:
     feature_names: list[str]
     target_name: str
     classes: npt.NDArray[np.object_] | None = None  # None when y is empty
+    data_type: str = "tabular"
 
     def __len__(self) -> int:
         return len(self.X)

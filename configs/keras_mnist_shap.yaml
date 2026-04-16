@@ -6,15 +6,14 @@ logging:
   level: INFO
 
 model:
-  type: sklearn
-  path: weights/iris_random_forest.pkl
+  type: keras
+  path: weights/mnist_mlp.keras
 
 dataset:
   type: builtin
-  name: iris
+  name: mnist
+  max_samples: 100
 
 explainer:
-  type: lime
+  type: shap
   num_features: 10
-  num_samples: 5000
-  global_samples: 500

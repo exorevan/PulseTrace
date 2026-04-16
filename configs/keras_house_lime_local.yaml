@@ -24,5 +24,6 @@ explainer:
 local:
   dataset:
     type: csv
-    path: datasets/sample_input.csv
+    path: datasets/house_sample.csv
+    header: null
     only_x: true

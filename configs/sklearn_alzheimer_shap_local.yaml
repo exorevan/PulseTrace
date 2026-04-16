@@ -7,23 +7,21 @@ logging:
 
 model:
   type: sklearn
-  path: weights/house_lin_reg.pkl
+  path: weights/alzheimer_log_reg.pkl
 
 dataset:
   type: csv
-  path: datasets/house_pricing_dataset.csv
+  path: datasets/alzheimers_disease_data.csv
   delimiter: ","
   header: 0
-  only_x: true
 
 explainer:
-  type: lime
-  num_features: 199
-  num_samples: 5000
+  type: shap
+  num_features: 20
 
 local:
   dataset:
     type: csv
-    path: datasets/house_sample.csv
+    path: datasets/alzheimer_sample.csv
     header: null
     only_x: true

@@ -6,8 +6,8 @@ logging:
   level: INFO
 
 model:
-  type: sklearn
-  path: weights/house_lin_reg.pkl
+  type: keras
+  path: weights/house_lin_reg.keras
 
 dataset:
   type: csv
@@ -17,9 +17,8 @@ dataset:
   only_x: true
 
 explainer:
-  type: lime
-  num_features: 199
-  num_samples: 5000
+  type: shap
+  num_features: 15
 
 local:
   dataset:

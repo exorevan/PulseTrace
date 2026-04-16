@@ -14,9 +14,8 @@ dataset:
   name: iris
 
 explainer:
-  type: lime
+  type: shap
   num_features: 10
-  num_samples: 5000
 
 local:
   dataset:

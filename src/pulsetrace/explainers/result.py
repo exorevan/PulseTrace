@@ -23,6 +23,10 @@ class ExplanationResult:
     contributions contains one FeatureContribution per (feature, label) pair
     for classification global results; one per feature (label=None) for
     regression and for local results.
+
+    base_values maps each class label (or None for regression) to the baseline
+    model output before feature contributions are applied (LIME intercept /
+    SHAP expected value).
     """
 
     mode: Literal["global", "local"]
@@ -30,3 +34,5 @@ class ExplanationResult:
     task: Literal["classification", "regression"]
     target_name: str
     contributions: list[FeatureContribution]
+    base_values: dict[str | int | None, float] | None = None
+    global_samples: int | None = None
