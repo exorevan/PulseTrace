@@ -67,54 +67,101 @@ class ShapExplainer(BaseExplainer):
         return shap.KernelExplainer(predict_fn, summary)
 
     def _explain_ts_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
+        from .ts_utils import ts_panel
+
         background = dataset.X[:100] if len(dataset) > 100 else dataset.X
         explainer = self._make_kernel_explainer(model, background, dataset.feature_names)
 
         sample = dataset.X[:10] if len(dataset) > 10 else dataset.X
-        shap_values = explainer.shap_values(sample)
+        shap_values = explainer.shap_values(sample, silent=True)
 
         contributions: list[FeatureContribution] = []
         base_values: dict[str | int | None, float] = {}
+        panels = []
 
         if model.task == "classification":
             classes = dataset.classes if dataset.classes is not None else np.array([0])
-            sv_arr = np.array(shap_values)  # works for both list-of-arrays and ndarray
-            # sv_arr shape: (n_classes, n_samples, n_features) if list, or (n_samples, n_features)
-            if sv_arr.ndim == 3:
+            sv_arr = np.array(shap_values)
+            ev = explainer.expected_value
+            if hasattr(ev, "__len__"):
+                base_values = {int(cls): float(ev[i]) for i, cls in enumerate(classes[:len(ev)])}
+            else:
+                base_values = {None: float(ev)}
+
+            if isinstance(shap_values, list):
+                # Legacy list format: (n_classes, n_samples, n_features)
                 for class_idx, cls in enumerate(classes):
                     avg_abs = np.mean(np.abs(sv_arr[class_idx]), axis=0)
                     contributions.extend(
                         self._top_contributions(avg_abs, dataset.feature_names, label=cls)
                     )
+                for i in range(len(sample)):
+                    proba = model.predict_proba(sample[i : i + 1])[0]
+                    predicted_idx = int(np.argmax(proba))
+                    predicted_label = classes[predicted_idx]
+                    confidence = float(proba[predicted_idx])
+                    panels.append(ts_panel(
+                        sample[i], sv_arr[predicted_idx, i],
+                        title=f"Sample {i} — pred: {predicted_label}",
+                        confidence=confidence,
+                    ))
+            elif sv_arr.ndim == 3:
+                # New ndarray format: (n_samples, n_features, n_classes)
+                n_cls = sv_arr.shape[2]
+                for class_idx, cls in enumerate(classes[:n_cls]):
+                    avg_abs = np.mean(np.abs(sv_arr[:, :, class_idx]), axis=0)
+                    contributions.extend(
+                        self._top_contributions(avg_abs, dataset.feature_names, label=cls)
+                    )
+                for i in range(len(sample)):
+                    proba = model.predict_proba(sample[i : i + 1])[0]
+                    predicted_idx = int(np.argmax(proba))
+                    predicted_label = classes[predicted_idx]
+                    confidence = float(proba[predicted_idx])
+                    panels.append(ts_panel(
+                        sample[i], sv_arr[i, :, predicted_idx],
+                        title=f"Sample {i} — pred: {predicted_label}",
+                        confidence=confidence,
+                    ))
             else:
                 avg_abs = np.mean(np.abs(sv_arr), axis=0)
                 contributions.extend(
                     self._top_contributions(avg_abs, dataset.feature_names, label=None)
                 )
-            ev = explainer.expected_value
-            base_values[None] = float(ev[0]) if hasattr(ev, "__len__") else float(ev)
         else:
-            avg_abs = np.mean(np.abs(shap_values), axis=0)
+            sv_arr = np.array(shap_values)
+            avg_abs = np.mean(np.abs(sv_arr), axis=0)
             contributions.extend(
                 self._top_contributions(avg_abs, dataset.feature_names, label=None)
             )
             ev = explainer.expected_value
-            base_values[None] = float(ev) if np.ndim(ev) == 0 else float(ev[0])
+            base_val_reg = float(ev) if np.ndim(ev) == 0 else float(ev[0])
+            base_values[None] = base_val_reg
+            for i in range(len(sample)):
+                predicted_value = float(model.predict(sample[i : i + 1])[0])
+                weights_i = sv_arr[i] if sv_arr.ndim >= 2 else sv_arr
+                panels.append(ts_panel(
+                    sample[i], weights_i,
+                    title=f"Sample {i} — pred: {predicted_value:.4f}",
+                ))
 
         return ExplanationResult(
             mode="global", method="shap", task=model.task,
             target_name=dataset.target_name, contributions=contributions,
-            base_values=base_values,
+            base_values=base_values, global_samples=len(sample),
+            image_panels=panels if panels else None,
         )
 
     def _explain_ts_local(
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
+        from .ts_utils import ts_panel
+
         background = dataset.X[:100] if len(dataset) > 100 else dataset.X
         explainer = self._make_kernel_explainer(model, background, dataset.feature_names)
 
         x = instance.instance(0).reshape(1, -1)
-        shap_values = explainer.shap_values(x)
+        shap_values = explainer.shap_values(x, silent=True)
 
         contributions: list[FeatureContribution] = []
         base_values: dict[str | int | None, float] = {}
@@ -124,15 +171,27 @@ class ShapExplainer(BaseExplainer):
             predicted_idx = int(np.argmax(proba))
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             predicted_label = classes[predicted_idx]
-            sv_arr = np.array(shap_values)  # (n_classes, 1, n_features) or (1, n_features)
-            if sv_arr.ndim == 3:
-                vals = sv_arr[predicted_idx][0]  # (n_features,)
+            confidence = float(proba[predicted_idx])
+            sv_arr = np.array(shap_values)
+            if isinstance(shap_values, list):
+                vals = sv_arr[predicted_idx][0]
+            elif sv_arr.ndim == 3:
+                vals = sv_arr[0, :, predicted_idx]
             else:
                 vals = sv_arr[0]
             contributions.extend(
                 self._top_contributions(vals, dataset.feature_names, label=predicted_label)
             )
-            base_values[predicted_label] = float(proba[predicted_idx])
+            ev = explainer.expected_value
+            if hasattr(ev, "__len__"):
+                base_values = {int(cls): float(ev[i]) for i, cls in enumerate(classes[:len(ev)])}
+            else:
+                base_values = {None: float(ev)}
+            panel = ts_panel(
+                x[0], vals,
+                title=f"pred: {predicted_label}",
+                confidence=confidence,
+            )
         else:
             sv_arr = np.array(shap_values)
             vals = sv_arr[0] if sv_arr.ndim >= 2 else sv_arr
@@ -140,12 +199,19 @@ class ShapExplainer(BaseExplainer):
                 self._top_contributions(vals, dataset.feature_names, label=None)
             )
             ev = explainer.expected_value
-            base_values[None] = float(ev) if np.ndim(ev) == 0 else float(ev[0])
+            base_val = float(ev) if np.ndim(ev) == 0 else float(ev[0])
+            base_values[None] = base_val
+            predicted_value = float(model.predict(x)[0])
+            panel = ts_panel(
+                x[0], vals,
+                title=f"pred: {predicted_value:.4f}",
+            )
 
         return ExplanationResult(
             mode="local", method="shap", task=model.task,
             target_name=dataset.target_name, contributions=contributions,
             base_values=base_values,
+            image_panels=[panel],
         )
 
     # ------------------------------------------------------------------
@@ -153,10 +219,9 @@ class ShapExplainer(BaseExplainer):
     # ------------------------------------------------------------------
 
     def _explain_image_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
-        import skimage.segmentation
+        from .image_utils import shap_panel
 
         sample = dataset.X[:min(10, len(dataset))]   # (n, H, W, C)
-        image = sample[0]                             # reference image for segmentation
         bg_mean = sample.mean(axis=0)                 # (H, W, C) — fill value for masker
 
         masker = shap.maskers.Image(bg_mean, bg_mean.shape)
@@ -168,49 +233,48 @@ class ShapExplainer(BaseExplainer):
         # classification (predict_proba → (n, k)): vals.shape == (n, H, W, C, k)
         # regression     (predict → (n,)):         vals.shape == (n, H, W, C)
 
-        segments = skimage.segmentation.quickshift(image, kernel_size=4, max_dist=200, ratio=0.2)
-
-        contributions: list[FeatureContribution] = []
+        panels = []
         base_values: dict[str | int | None, float] = {}
 
         if model.task == "classification":
             classes = dataset.classes if dataset.classes is not None else np.array([0])
-            for class_idx, cls in enumerate(classes):
-                class_vals = vals[..., class_idx]                         # (n, H, W, C)
-                avg_abs = np.mean(np.abs(class_vals), axis=0)             # (H, W, C)
-                avg_abs_hw = avg_abs.mean(axis=-1)                        # (H, W)
-                region_weights: dict[int, float] = {
-                    int(sid): float(avg_abs_hw[segments == sid].mean())
-                    for sid in np.unique(segments)
-                }
-                top = sorted(region_weights.items(), key=lambda x: x[1], reverse=True)[: self.config.num_features]
-                for seg_id, w in top:
-                    contributions.append(FeatureContribution(feature=f"region_{seg_id}", weight=w, label=cls))
+            for i in range(len(sample)):
+                proba = predict_fn(sample[i : i + 1])[0]
+                predicted_idx = int(np.argmax(proba))
+                predicted_label = classes[predicted_idx]
+                confidence = float(proba[predicted_idx])
+                class_vals = vals[i, ..., predicted_idx]  # (H, W, C)
+                panels.append(shap_panel(
+                    sample[i], class_vals,
+                    title=f"Sample {i} — pred: {predicted_label}",
+                    confidence=confidence,
+                ))
             ev = shap_values.base_values
             base_values[None] = float(np.mean(ev)) if ev is not None else 0.0
         else:
-            avg_abs = np.mean(np.abs(vals), axis=0)   # (H, W, C)
-            avg_abs_hw = avg_abs.mean(axis=-1)         # (H, W)
-            region_weights_r: dict[int, float] = {
-                int(sid): float(avg_abs_hw[segments == sid].mean())
-                for sid in np.unique(segments)
-            }
-            top_r = sorted(region_weights_r.items(), key=lambda x: x[1], reverse=True)[: self.config.num_features]
-            for seg_id, w in top_r:
-                contributions.append(FeatureContribution(feature=f"region_{seg_id}", weight=w, label=None))
+            for i in range(len(sample)):
+                image_vals = vals[i]   # (H, W, C)
+                predicted_value = float(predict_fn(sample[i : i + 1])[0])
+                panels.append(shap_panel(
+                    sample[i], image_vals,
+                    title=f"Sample {i} — pred: {predicted_value:.4f}",
+                ))
             ev = shap_values.base_values
             base_values[None] = float(np.mean(ev)) if ev is not None else 0.0
 
         return ExplanationResult(
             mode="global", method="shap", task=model.task,
-            target_name=dataset.target_name, contributions=contributions,
-            base_values=base_values,
+            target_name=dataset.target_name, contributions=[],
+            base_values=base_values, global_samples=len(sample),
+            image_panels=panels,
         )
 
     def _explain_image_local(
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
         import skimage.segmentation
+
+        from .image_utils import shap_panel
 
         image = instance.instance(0)                                      # (H, W, C)
         bg_mean = dataset.X[:min(10, len(dataset))].mean(axis=0)          # (H, W, C)
@@ -222,16 +286,21 @@ class ShapExplainer(BaseExplainer):
         shap_values = explainer(image.reshape(1, *image.shape))
         vals = shap_values.values   # (1, H, W, C) regression  OR  (1, H, W, C, n_classes)
 
-        segments = skimage.segmentation.quickshift(image, kernel_size=4, max_dist=200, ratio=0.2)
+        n_ch = image.shape[-1] if image.ndim == 3 else 1
+        segments = skimage.segmentation.quickshift(
+            image, kernel_size=4, max_dist=200, ratio=0.2,
+            convert2lab=(n_ch == 3),
+        )
 
         contributions: list[FeatureContribution] = []
         base_values: dict[str | int | None, float] = {}
 
         if model.task == "classification":
-            proba = model.predict_proba(image.reshape(1, *image.shape))[0]
+            proba = predict_fn(image.reshape(1, *image.shape))[0]
             predicted_idx = int(np.argmax(proba))
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             predicted_label = classes[predicted_idx]
+            confidence = float(proba[predicted_idx])
 
             class_vals = vals[0, ..., predicted_idx]       # (H, W, C)
             avg_abs_hw = np.abs(class_vals).mean(axis=-1)  # (H, W)
@@ -242,9 +311,16 @@ class ShapExplainer(BaseExplainer):
             top = sorted(region_weights.items(), key=lambda x: x[1], reverse=True)[: self.config.num_features]
             for seg_id, w in top:
                 contributions.append(FeatureContribution(feature=f"region_{seg_id}", weight=w, label=predicted_label))
-            base_values[predicted_label] = float(proba[predicted_idx])
+            base_values[predicted_label] = confidence
+            panel = shap_panel(
+                image, class_vals,
+                title=f"pred: {predicted_label} ({confidence:.2%})",
+                confidence=confidence,
+            )
         else:
-            avg_abs_hw = np.abs(vals[0]).mean(axis=-1)     # (H, W)
+            image_vals = vals[0]                               # (H, W, C)
+            predicted_value = float(predict_fn(image.reshape(1, *image.shape))[0])
+            avg_abs_hw = np.abs(image_vals).mean(axis=-1)      # (H, W)
             region_weights_r: dict[int, float] = {
                 int(sid): float(avg_abs_hw[segments == sid].mean())
                 for sid in np.unique(segments)
@@ -254,11 +330,177 @@ class ShapExplainer(BaseExplainer):
                 contributions.append(FeatureContribution(feature=f"region_{seg_id}", weight=w, label=None))
             ev = shap_values.base_values
             base_values[None] = float(np.mean(ev)) if ev is not None else 0.0
+            panel = shap_panel(image, image_vals, title=f"pred: {predicted_value:.4f}")
 
         return ExplanationResult(
             mode="local", method="shap", task=model.task,
             target_name=dataset.target_name, contributions=contributions,
             base_values=base_values,
+            image_panels=[panel],
+        )
+
+    # ------------------------------------------------------------------
+    # Internal helpers — text
+    # ------------------------------------------------------------------
+
+    def _explain_text_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
+        """SHAP global explanation for text classification.
+
+        Args:
+            model: HfAdapter with predict_proba(list[str]) and tokenizer attribute.
+            dataset: TextDataset with texts and class labels.
+
+        Returns:
+            ExplanationResult with image_panels and token-level contributions.
+        """
+        from pulsetrace.data.text_dataset import TextDataset
+
+        from .text_utils import text_panel
+
+        assert isinstance(dataset, TextDataset)
+
+        n_samples = min(self.config.global_samples, len(dataset))
+        texts = dataset.texts[:n_samples]
+
+        masker = shap.maskers.Text(tokenizer=model.tokenizer)  # type: ignore[attr-defined]
+        explainer = shap.Explainer(model.predict_proba, masker)  # type: ignore[arg-type]
+        shap_values = explainer(texts, silent=True)
+
+        sv: np.ndarray = shap_values.values  # (n, n_tokens, n_classes) or (n, n_tokens)
+        n_classes = sv.shape[2] if sv.ndim == 3 else 1
+
+        ds_classes = dataset.classes if dataset.classes is not None else np.array([])
+        if len(ds_classes) == n_classes:
+            class_names = [str(c) for c in ds_classes]
+        else:
+            class_names = [str(i) for i in range(n_classes)]
+
+        ev = explainer.expected_value
+        if hasattr(ev, "__len__"):
+            base_values: dict[str | int | None, float] = {
+                class_names[ci]: float(ev[ci]) for ci in range(min(len(ev), n_classes))
+            }
+        else:
+            base_values = {class_names[0]: float(ev)}
+
+        panels = []
+        totals: dict[str, dict[str, float]] = {cn: {} for cn in class_names}
+        counts: dict[str, dict[str, int]] = {cn: {} for cn in class_names}
+
+        for i in range(n_samples):
+            tokens = shap_values.data[i]
+            proba = model.predict_proba([texts[i]])[0]  # type: ignore[arg-type]
+            predicted_idx = int(np.argmax(proba[:n_classes]))
+            predicted_label = class_names[predicted_idx]
+            confidence = float(proba[predicted_idx])
+
+            weights_for_pred = sv[i, :, predicted_idx] if sv.ndim == 3 else sv[i, :]
+            word_weights = [(str(tok), float(w)) for tok, w in zip(tokens, weights_for_pred)]
+
+            panels.append(text_panel(
+                texts[i], word_weights,
+                title=f"Sample {i} — pred: {predicted_label}",
+                confidence=confidence,
+            ))
+
+            for tok, w in zip(tokens, weights_for_pred):
+                tok_str = str(tok)
+                totals[predicted_label][tok_str] = (
+                    totals[predicted_label].get(tok_str, 0.0) + float(abs(w))
+                )
+                counts[predicted_label][tok_str] = counts[predicted_label].get(tok_str, 0) + 1
+
+        all_contribs = [
+            FeatureContribution(
+                feature=feat,
+                weight=totals[cn][feat] / counts[cn][feat],
+                label=cn,
+            )
+            for cn in class_names
+            for feat in totals[cn]
+        ]
+        contributions = sorted(all_contribs, key=lambda fc: abs(fc.weight), reverse=True)[
+            : self.config.num_features * max(len(class_names), 1)
+        ]
+
+        return ExplanationResult(
+            mode="global", method="shap", task=model.task,
+            target_name=dataset.target_name, contributions=contributions,
+            base_values=base_values, global_samples=n_samples,
+            image_panels=panels,
+        )
+
+    def _explain_text_local(
+        self, model: ModelAdapter, instance: Dataset, dataset: Dataset
+    ) -> ExplanationResult:
+        """SHAP local explanation for text classification.
+
+        Args:
+            model: HfAdapter with predict_proba(list[str]) and tokenizer attribute.
+            instance: TextDataset with a single text to explain.
+            dataset: TextDataset used to derive class names.
+
+        Returns:
+            ExplanationResult with one image_panel and token-level contributions.
+        """
+        from pulsetrace.data.text_dataset import TextDataset
+
+        from .text_utils import text_panel
+
+        assert isinstance(instance, TextDataset)
+        assert isinstance(dataset, TextDataset)
+
+        text = instance.texts[0]
+
+        masker = shap.maskers.Text(tokenizer=model.tokenizer)  # type: ignore[attr-defined]
+        explainer = shap.Explainer(model.predict_proba, masker)  # type: ignore[arg-type]
+        shap_values = explainer([text], silent=True)
+
+        sv: np.ndarray = shap_values.values  # (1, n_tokens, n_classes) or (1, n_tokens)
+        n_classes = sv.shape[2] if sv.ndim == 3 else 1
+        tokens = shap_values.data[0]
+
+        ds_classes = dataset.classes if dataset.classes is not None else np.array([])
+        if len(ds_classes) == n_classes:
+            class_names = [str(c) for c in ds_classes]
+        else:
+            class_names = [str(i) for i in range(n_classes)]
+
+        proba = model.predict_proba([text])[0]  # type: ignore[arg-type]
+        predicted_idx = int(np.argmax(proba[:n_classes]))
+        predicted_label = class_names[predicted_idx]
+        confidence = float(proba[predicted_idx])
+
+        weights = sv[0, :, predicted_idx] if sv.ndim == 3 else sv[0, :]
+        word_weights = [(str(tok), float(w)) for tok, w in zip(tokens, weights)]
+
+        top_pairs = sorted(zip(tokens, weights), key=lambda tw: abs(tw[1]), reverse=True)[
+            : self.config.num_features
+        ]
+        contributions = [
+            FeatureContribution(feature=str(tok), weight=float(w), label=predicted_label)
+            for tok, w in top_pairs
+        ]
+
+        ev = explainer.expected_value
+        if hasattr(ev, "__len__"):
+            base_values: dict[str | int | None, float] = {
+                class_names[ci]: float(ev[ci]) for ci in range(min(len(ev), n_classes))
+            }
+        else:
+            base_values = {class_names[0]: float(ev)}
+
+        panel = text_panel(
+            text, word_weights,
+            title=f"pred: {predicted_label}",
+            confidence=confidence,
+        )
+
+        return ExplanationResult(
+            mode="local", method="shap", task=model.task,
+            target_name=dataset.target_name, contributions=contributions,
+            base_values=base_values,
+            image_panels=[panel],
         )
 
     # ------------------------------------------------------------------
@@ -267,11 +509,14 @@ class ShapExplainer(BaseExplainer):
 
     def explain_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
         from pulsetrace.data.image_dataset import ImageDataset
+        from pulsetrace.data.text_dataset import TextDataset
         from pulsetrace.data.timeseries_dataset import TimeSeriesDataset
         if isinstance(dataset, ImageDataset):
             return self._explain_image_global(model, dataset)
         if isinstance(dataset, TimeSeriesDataset):
             return self._explain_ts_global(model, dataset)
+        if isinstance(dataset, TextDataset):
+            return self._explain_text_global(model, dataset)
         return self._explain_tabular_global(model, dataset)
 
     def _explain_tabular_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
@@ -324,11 +569,14 @@ class ShapExplainer(BaseExplainer):
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
         from pulsetrace.data.image_dataset import ImageDataset
+        from pulsetrace.data.text_dataset import TextDataset
         from pulsetrace.data.timeseries_dataset import TimeSeriesDataset
         if isinstance(dataset, ImageDataset):
             return self._explain_image_local(model, instance, dataset)
         if isinstance(dataset, TimeSeriesDataset):
             return self._explain_ts_local(model, instance, dataset)
+        if isinstance(dataset, TextDataset):
+            return self._explain_text_local(model, instance, dataset)
         return self._explain_tabular_local(model, instance, dataset)
 
     def _explain_tabular_local(

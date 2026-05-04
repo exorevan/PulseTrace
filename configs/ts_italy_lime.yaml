@@ -1,0 +1,21 @@
+app:
+  mode: global
+  output_format: html
+
+logging:
+  level: INFO
+
+model:
+  type: sklearn
+  path: weights/ts_italy_mlp.pkl
+
+dataset:
+  type: timeseries
+  path: datasets/ts_italy_power_train.npy
+  n_timesteps: 24
+
+explainer:
+  type: lime
+  num_features: 6
+  num_samples: 500
+  n_segments: 6

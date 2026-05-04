@@ -295,7 +295,8 @@ class TestShapTimeseriesGlobal:
     def test_at_most_num_features_contributions(self, ts_classification_adapter_and_dataset):
         adapter, dataset = ts_classification_adapter_and_dataset
         result = ShapExplainer(_SHAP_TS_CFG).explain_global(adapter, dataset)
-        assert len(result.contributions) <= _SHAP_TS_CFG.num_features
+        n_classes = len(dataset.classes) if dataset.classes is not None else 1
+        assert len(result.contributions) <= _SHAP_TS_CFG.num_features * n_classes
 
     def test_regression_has_base_value(self, ts_regression_adapter_and_dataset):
         adapter, dataset = ts_regression_adapter_and_dataset

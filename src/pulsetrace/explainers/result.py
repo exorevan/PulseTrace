@@ -5,6 +5,16 @@ from typing import Literal
 
 
 @dataclass(frozen=True)
+class ImagePanel:
+    """Original image alongside its XAI explanation overlay, encoded as base64 PNGs."""
+
+    title: str
+    original_b64: str
+    explanation_b64: str
+    confidence: float | None = None
+
+
+@dataclass(frozen=True)
 class FeatureContribution:
     """Weight of one feature toward a prediction.
 
@@ -30,9 +40,10 @@ class ExplanationResult:
     """
 
     mode: Literal["global", "local"]
-    method: Literal["lime", "shap"]
+    method: Literal["lime", "shap", "ig"]
     task: Literal["classification", "regression"]
     target_name: str
     contributions: list[FeatureContribution]
     base_values: dict[str | int | None, float] | None = None
     global_samples: int | None = None
+    image_panels: list[ImagePanel] | None = None

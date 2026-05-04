@@ -1,6 +1,6 @@
 app:
   mode: global
-  output_format: console
+  output_format: html
 
 logging:
   level: INFO

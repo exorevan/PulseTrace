@@ -5,6 +5,7 @@ description = "XAI application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "captum>=0.7.0",
     "keras>=3.9.0",
     "lime>=0.2.0.1",
     "matplotlib>=3.10.1",
@@ -17,6 +18,8 @@ dependencies = [
     "shap>=0.47.0",
     "tensorflow>=2.18.0",
     "torch>=2.6.0",
+    "sktime>=0.40.1",
+    "transformers>=4.40.0",
 ]
 
 [project.scripts]
@@ -32,4 +35,5 @@ markers = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "datasets>=2.19.0",
 ]

@@ -6,13 +6,13 @@ logging:
   level: INFO
 
 model:
-  type: keras
-  path: weights/fashion_mnist_mlp.keras
+  type: sklearn
+  path: weights/ts_arrow_mlp.pkl
 
 dataset:
-  type: builtin
-  name: fashion_mnist
-  max_samples: 100
+  type: timeseries
+  path: datasets/ts_arrow_head_train.npy
+  n_timesteps: 251
 
 explainer:
   type: shap

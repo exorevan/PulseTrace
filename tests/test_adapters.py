@@ -188,3 +188,32 @@ def test_as_frame_skips_dataframe_for_ndim_gt_2():
     X_4d = np.ones((2, 8, 8, 3), dtype=np.float32)
     result = adapter._as_frame(X_4d)
     assert result is X_4d
+
+
+def test_build_adapter_sets_keras_backend_torch(monkeypatch, tmp_path):
+    """build_adapter must set KERAS_BACKEND='torch' before importing keras."""
+    import os
+    import sys
+    from unittest.mock import MagicMock, patch
+
+    from pulsetrace.adapters import build_adapter
+    from pulsetrace.config.schema import KerasModelConfig
+
+    # Remove any pre-existing KERAS_BACKEND so setdefault actually fires
+    monkeypatch.delitem(os.environ, "KERAS_BACKEND", raising=False)
+
+    mock_model = MagicMock()
+    mock_model.output_shape = (None, 1)
+
+    # Create a mock keras.models.load_model
+    mock_load_model = MagicMock(return_value=mock_model)
+    mock_models = MagicMock(load_model=mock_load_model)
+    mock_keras = MagicMock(models=mock_models)
+
+    cfg = KerasModelConfig(type="keras", path=str(tmp_path / "dummy.keras"))
+
+    # Patch keras at the module level during import
+    with patch.dict(sys.modules, {"keras": mock_keras, "keras.models": mock_models}):
+        build_adapter(cfg)
+
+    assert os.environ.get("KERAS_BACKEND") == "torch"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pulsetrace.config.schema import ExplainerConfig
 
 from .base import BaseExplainer
+from .ig import IgExplainer
 from .lime import LimeExplainer
 from .result import ExplanationResult, FeatureContribution
 from .shap import ShapExplainer
@@ -13,11 +14,14 @@ def build_explainer(config: ExplainerConfig) -> BaseExplainer:
         return LimeExplainer(config)
     if config.type == "shap":
         return ShapExplainer(config)
+    if config.type == "ig":
+        return IgExplainer(config)
     raise ValueError(f"Unknown explainer type: '{config.type}'")
 
 
 __all__ = [
     "BaseExplainer",
+    "IgExplainer",
     "LimeExplainer",
     "ShapExplainer",
     "ExplanationResult",

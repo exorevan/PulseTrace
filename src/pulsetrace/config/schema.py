@@ -33,8 +33,17 @@ class TorchModelConfig(_Base):
     task: ty.Literal["classification", "regression"]
 
 
+class HfModelConfig(_Base):
+    """HuggingFace AutoModelForSequenceClassification — local path or Hub ID."""
+
+    type: ty.Literal["hf"]
+    path_or_name: str
+    labels: list[str] = Field(min_length=1)
+    max_length: int = 512
+
+
 ModelConfig = ty.Annotated[
-    SklearnModelConfig | KerasModelConfig | TorchModelConfig,
+    SklearnModelConfig | KerasModelConfig | TorchModelConfig | HfModelConfig,
     Field(discriminator="type"),
 ]
 
@@ -77,18 +86,28 @@ class BuiltinDatasetConfig(_Base):
     max_samples: int | None = None                  # cap number of samples loaded
 
 
+class TextDatasetConfig(_Base):
+    """Dataset of .txt files organised in one subdirectory per class."""
+
+    type: ty.Literal["text"]
+    path: Path
+    only_x: bool = False
+
+
 DatasetConfig = ty.Annotated[
-    CsvDatasetConfig | TimeSeriesDatasetConfig | ImageDatasetConfig | BuiltinDatasetConfig,
+    CsvDatasetConfig | TimeSeriesDatasetConfig | ImageDatasetConfig | BuiltinDatasetConfig | TextDatasetConfig,
     Field(discriminator="type"),
 ]
 
 
 class ExplainerConfig(_Base):
-    type: ty.Literal["lime", "shap"]
+    type: ty.Literal["lime", "shap", "ig"]
     num_features: int = 10
-    num_samples: int = 5000    # LIME perturbations per instance
-    global_samples: int = 10   # instances explained in global mode
-    n_segments: int = 10       # LIME time-series: contiguous windows per series
+    num_samples: int = 5000
+    global_samples: int = 10
+    n_segments: int = 10
+    ig_steps: int = 50
+    ig_baseline: ty.Literal["zero", "mean"] = "zero"
 
 
 class LocalConfig(_Base):

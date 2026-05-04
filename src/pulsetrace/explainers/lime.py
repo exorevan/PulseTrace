@@ -99,21 +99,47 @@ class LimeExplainer(BaseExplainer):
         return exp.as_list()
 
     def _explain_ts_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
+        from .ts_utils import expand_segment_weights, ts_panel
+
         n_samples = min(self.config.global_samples, len(dataset))
         n_segments = self.config.n_segments
         background = dataset.X
+        T = background.shape[1]
+
+        # Background base value (mean prediction on a small background slice)
+        bg_slice = background[:min(20, len(background))]
+        predict_fn = model.predict_proba if model.task == "classification" else model.predict
+        panels = []
 
         if model.task == "classification":
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             totals: dict[ty.Any, dict[str, float]] = {c: {} for c in classes}
             counts: dict[ty.Any, dict[str, int]] = {c: {} for c in classes}
+            bg_proba = predict_fn(bg_slice)   # (n_bg, n_classes)
+            base_values_cls: dict[str | int | None, float] = {
+                int(cls): float(np.mean(bg_proba[:, ci]))
+                for ci, cls in enumerate(classes)
+            }
 
             for i in range(n_samples):
-                pairs = self._explain_ts_instance(model, dataset.instance(i), background, n_segments)
+                series = dataset.instance(i)
+                pairs = self._explain_ts_instance(model, series, background, n_segments)
                 cls = classes[0]
                 for feat, weight in pairs:
                     totals[cls][feat] = totals[cls].get(feat, 0.0) + weight
                     counts[cls][feat] = counts[cls].get(feat, 0) + 1
+
+                proba = predict_fn(series.reshape(1, -1))[0]
+                predicted_idx = int(np.argmax(proba))
+                predicted_label = classes[predicted_idx]
+                confidence = float(proba[predicted_idx])
+
+                weights_ts = expand_segment_weights(pairs, T)
+                panels.append(ts_panel(
+                    series, weights_ts,
+                    title=f"Sample {i} — pred: {predicted_label}",
+                    confidence=confidence,
+                ))
 
             contributions = [
                 FeatureContribution(feature=feat, weight=totals[cls][feat] / counts[cls][feat], label=cls)
@@ -123,7 +149,8 @@ class LimeExplainer(BaseExplainer):
             return ExplanationResult(
                 mode="global", method="lime", task=model.task,
                 target_name=dataset.target_name, contributions=contributions,
-                base_values=None, global_samples=n_samples,
+                base_values=base_values_cls, global_samples=n_samples,
+                image_panels=panels,
             )
         else:
             bg_for_base = dataset.X[np.random.choice(len(dataset), size=min(100, len(dataset)), replace=False)]
@@ -132,10 +159,18 @@ class LimeExplainer(BaseExplainer):
             counts_r: dict[str, int] = {}
 
             for i in range(n_samples):
-                pairs = self._explain_ts_instance(model, dataset.instance(i), background, n_segments)
+                series = dataset.instance(i)
+                pairs = self._explain_ts_instance(model, series, background, n_segments)
                 for feat, weight in pairs:
                     totals_r[feat] = totals_r.get(feat, 0.0) + weight
                     counts_r[feat] = counts_r.get(feat, 0) + 1
+
+                predicted_value = float(model.predict(series.reshape(1, -1))[0])
+                weights_ts = expand_segment_weights(pairs, T)
+                panels.append(ts_panel(
+                    series, weights_ts,
+                    title=f"Sample {i} — pred: {predicted_value:.4f}",
+                ))
 
             contributions = [
                 FeatureContribution(feature=feat, weight=totals_r[feat] / counts_r[feat], label=None)
@@ -145,80 +180,123 @@ class LimeExplainer(BaseExplainer):
                 mode="global", method="lime", task=model.task,
                 target_name=dataset.target_name, contributions=contributions,
                 base_values=reg_base, global_samples=n_samples,
+                image_panels=panels,
             )
 
     def _explain_ts_local(
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
+        from .ts_utils import expand_segment_weights, ts_panel
+
         n_segments = self.config.n_segments
+        T = dataset.X.shape[1]
         x = instance.instance(0)
         pairs = self._explain_ts_instance(model, x, dataset.X, n_segments)
+        weights_ts = expand_segment_weights(pairs, T)
 
         if model.task == "classification":
             proba = model.predict_proba(x.reshape(1, -1))[0]
             predicted_idx = int(np.argmax(proba))
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             predicted_label = classes[predicted_idx]
+            confidence = float(proba[predicted_idx])
+            bg_proba = model.predict_proba(dataset.X[:min(20, len(dataset))])
             contributions = [
                 FeatureContribution(feature=feat, weight=weight, label=predicted_label)
                 for feat, weight in pairs
             ]
-            base_values: dict[ty.Any, float] = {predicted_label: float(proba[predicted_idx])}
+            base_values: dict[ty.Any, float] = {
+                int(cls): float(np.mean(bg_proba[:, ci]))
+                for ci, cls in enumerate(classes)
+            }
+            panel = ts_panel(
+                x, weights_ts,
+                title=f"pred: {predicted_label}",
+                confidence=confidence,
+            )
         else:
             predicted_value = float(model.predict(x.reshape(1, -1))[0])
+            base_val = float(model.predict(dataset.X[:min(20, len(dataset))]).mean())
             contributions = [
                 FeatureContribution(feature=feat, weight=weight, label=None)
                 for feat, weight in pairs
             ]
-            base_values = {None: predicted_value}
+            base_values = {None: base_val}
+            panel = ts_panel(
+                x, weights_ts,
+                title=f"pred: {predicted_value:.4f}",
+            )
 
         return ExplanationResult(
             mode="local", method="lime", task=model.task,
             target_name=dataset.target_name, contributions=contributions,
             base_values=base_values,
+            image_panels=[panel],
         )
 
     # ------------------------------------------------------------------
     # Internal helpers — image
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _to_rgb(image: np.ndarray) -> np.ndarray:
+        """Convert (H, W, 1) grayscale to (H, W, 3) for LIME's quickshift segmenter."""
+        if image.shape[-1] == 1:
+            return np.repeat(image, 3, axis=-1)
+        return image
+
+    @staticmethod
+    def _wrap_predict_rgb(predict_fn: ty.Callable, n_channels: int) -> ty.Callable:
+        """If the model expects 1-channel input, collapse LIME's 3-channel perturbations."""
+        if n_channels == 1:
+            def wrapped(images: np.ndarray) -> np.ndarray:
+                gray = images.mean(axis=-1, keepdims=True).astype(np.float32)
+                return predict_fn(gray)
+            return wrapped
+        return predict_fn
+
     def _explain_image_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
         from lime.lime_image import LimeImageExplainer as _LimeImage
+
+        from .image_utils import lime_panel
+
         n_samples = min(self.config.global_samples, len(dataset))
         lime_img = _LimeImage()
+        panels = []
 
         if model.task == "classification":
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             n_classes = len(classes)
             predict_fn = model.predict_proba
 
-            totals: dict[ty.Any, dict[str, float]] = {c: {} for c in classes}
-            counts: dict[ty.Any, dict[str, int]] = {c: {} for c in classes}
-
             for i in range(n_samples):
                 image = dataset.instance(i)  # (H, W, C)
+                image_rgb = self._to_rgb(image)
+                wrapped_fn = self._wrap_predict_rgb(predict_fn, image.shape[-1])
+
+                proba = predict_fn(image.reshape(1, *image.shape))[0]
+                predicted_idx = int(np.argmax(proba))
+                predicted_label = classes[predicted_idx]
+                confidence = float(proba[predicted_idx])
+
                 exp = lime_img.explain_instance(
-                    image.astype(np.double),
-                    predict_fn,
+                    image_rgb.astype(np.double),
+                    wrapped_fn,
                     num_features=self.config.num_features,
                     num_samples=self.config.num_samples,
                     labels=list(range(n_classes)),
                 )
-                for class_idx, cls in enumerate(classes):
-                    for seg_id, weight in exp.local_exp.get(class_idx, []):
-                        feat = f"region_{seg_id}"
-                        totals[cls][feat] = totals[cls].get(feat, 0.0) + weight
-                        counts[cls][feat] = counts[cls].get(feat, 0) + 1
+                panels.append(lime_panel(
+                    image_rgb, exp, predicted_idx, self.config.num_features,
+                    title=f"Sample {i} — pred: {predicted_label}",
+                    confidence=confidence,
+                ))
 
-            contributions = [
-                FeatureContribution(feature=feat, weight=totals[cls][feat] / counts[cls][feat], label=cls)
-                for cls in classes
-                for feat in totals[cls]
-            ]
             return ExplanationResult(
                 mode="global", method="lime", task=model.task,
-                target_name=dataset.target_name, contributions=contributions,
+                target_name=dataset.target_name, contributions=[],
                 base_values=None, global_samples=n_samples,
+                image_panels=panels,
             )
         else:
             def predict_fn_reg(images: np.ndarray) -> np.ndarray:
@@ -226,37 +304,39 @@ class LimeExplainer(BaseExplainer):
 
             bg_sample = dataset.X[np.random.choice(len(dataset), size=min(100, len(dataset)), replace=False)]
             reg_base: dict[ty.Any, float] = {None: float(model.predict(bg_sample).mean())}  # type: ignore[dict-item]
-            totals_r: dict[str, float] = {}
-            counts_r: dict[str, int] = {}
 
             for i in range(n_samples):
                 image = dataset.instance(i)  # (H, W, C)
+                image_rgb = self._to_rgb(image)
+                wrapped_reg = self._wrap_predict_rgb(predict_fn_reg, image.shape[-1])
+
+                predicted_value = float(model.predict(image.reshape(1, *image.shape))[0])
                 exp = lime_img.explain_instance(
-                    image.astype(np.double),
-                    predict_fn_reg,
+                    image_rgb.astype(np.double),
+                    wrapped_reg,
                     num_features=self.config.num_features,
                     num_samples=self.config.num_samples,
                     labels=[0],
                 )
-                for seg_id, weight in exp.local_exp.get(0, []):
-                    feat = f"region_{seg_id}"
-                    totals_r[feat] = totals_r.get(feat, 0.0) + weight
-                    counts_r[feat] = counts_r.get(feat, 0) + 1
+                panels.append(lime_panel(
+                    image_rgb, exp, 0, self.config.num_features,
+                    title=f"Sample {i} — pred: {predicted_value:.4f}",
+                ))
 
-            contributions = [
-                FeatureContribution(feature=feat, weight=totals_r[feat] / counts_r[feat], label=None)
-                for feat in totals_r
-            ]
             return ExplanationResult(
                 mode="global", method="lime", task=model.task,
-                target_name=dataset.target_name, contributions=contributions,
+                target_name=dataset.target_name, contributions=[],
                 base_values=reg_base, global_samples=n_samples,
+                image_panels=panels,
             )
 
     def _explain_image_local(
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
         from lime.lime_image import LimeImageExplainer as _LimeImage
+
+        from .image_utils import lime_panel
+
         lime_img = _LimeImage()
         image = instance.instance(0)  # (H, W, C)
 
@@ -266,11 +346,14 @@ class LimeExplainer(BaseExplainer):
             predicted_idx = int(np.argmax(proba))
             classes = dataset.classes if dataset.classes is not None else np.array([0])
             predicted_label = classes[predicted_idx]
+            confidence = float(proba[predicted_idx])
             n_classes = len(classes)
 
+            image_rgb = self._to_rgb(image)
+            wrapped_fn = self._wrap_predict_rgb(predict_fn, image.shape[-1])
             exp = lime_img.explain_instance(
-                image.astype(np.double),
-                predict_fn,
+                image_rgb.astype(np.double),
+                wrapped_fn,
                 num_features=self.config.num_features,
                 num_samples=self.config.num_samples,
                 labels=list(range(n_classes)),
@@ -279,15 +362,22 @@ class LimeExplainer(BaseExplainer):
                 FeatureContribution(feature=f"region_{seg_id}", weight=weight, label=predicted_label)
                 for seg_id, weight in exp.local_exp.get(predicted_idx, [])
             ]
-            base_values: dict[ty.Any, float] = {predicted_label: float(proba[predicted_idx])}
+            base_values: dict[ty.Any, float] = {predicted_label: confidence}
+            panel = lime_panel(
+                image_rgb, exp, predicted_idx, self.config.num_features,
+                title=f"pred: {predicted_label} ({confidence:.2%})",
+                confidence=confidence,
+            )
         else:
             def predict_fn_reg(images: np.ndarray) -> np.ndarray:
                 return model.predict(images).reshape(-1, 1)
 
             predicted_value = float(model.predict(image.reshape(1, *image.shape))[0])
+            image_rgb = self._to_rgb(image)
+            wrapped_reg = self._wrap_predict_rgb(predict_fn_reg, image.shape[-1])
             exp = lime_img.explain_instance(
-                image.astype(np.double),
-                predict_fn_reg,
+                image_rgb.astype(np.double),
+                wrapped_reg,
                 num_features=self.config.num_features,
                 num_samples=self.config.num_samples,
                 labels=[0],
@@ -297,11 +387,168 @@ class LimeExplainer(BaseExplainer):
                 for seg_id, weight in exp.local_exp.get(0, [])
             ]
             base_values = {None: predicted_value}
+            panel = lime_panel(
+                image_rgb, exp, 0, self.config.num_features,
+                title=f"pred: {predicted_value:.4f}",
+            )
 
         return ExplanationResult(
             mode="local", method="lime", task=model.task,
             target_name=dataset.target_name, contributions=contributions,
             base_values=base_values,
+            image_panels=[panel],
+        )
+
+    # ------------------------------------------------------------------
+    # Internal helpers — text
+    # ------------------------------------------------------------------
+
+    def _explain_text_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
+        """LIME global explanation for text classification.
+
+        Args:
+            model: HfAdapter (or any adapter with predict_proba accepting list[str]).
+            dataset: TextDataset with texts and class labels.
+
+        Returns:
+            ExplanationResult with image_panels and word-level contributions.
+        """
+        from lime.lime_text import LimeTextExplainer
+
+        from pulsetrace.data.text_dataset import TextDataset
+
+        from .text_utils import text_panel
+
+        assert isinstance(dataset, TextDataset)
+
+        predict_fn = model.predict_proba  # type: ignore[arg-type]
+        n_samples = min(self.config.global_samples, len(dataset))
+
+        bg_texts = dataset.texts[: min(20, len(dataset))]
+        bg_proba = predict_fn(bg_texts)
+        n_classes = bg_proba.shape[1]
+
+        ds_classes = dataset.classes if dataset.classes is not None else np.array([])
+        if len(ds_classes) == n_classes:
+            class_names = [str(c) for c in ds_classes]
+        else:
+            class_names = [str(i) for i in range(n_classes)]
+
+        base_values: dict[str | int | None, float] = {
+            class_names[ci]: float(np.mean(bg_proba[:, ci])) for ci in range(n_classes)
+        }
+
+        lime_exp = LimeTextExplainer(class_names=class_names)
+        totals: dict[ty.Any, dict[str, float]] = {cn: {} for cn in class_names}
+        counts: dict[ty.Any, dict[str, int]] = {cn: {} for cn in class_names}
+        panels = []
+
+        for i in range(n_samples):
+            text = dataset.texts[i]
+            exp = lime_exp.explain_instance(
+                text,
+                predict_fn,
+                num_features=self.config.num_features,
+                labels=list(range(n_classes)),
+            )
+            proba = predict_fn([text])[0]
+            predicted_idx = int(np.argmax(proba))
+            predicted_label = class_names[predicted_idx]
+            confidence = float(proba[predicted_idx])
+
+            for idx, cn in enumerate(class_names):
+                for feat, weight in exp.as_list(label=idx):
+                    totals[cn][feat] = totals[cn].get(feat, 0.0) + weight
+                    counts[cn][feat] = counts[cn].get(feat, 0) + 1
+
+            word_weights = exp.as_list(label=predicted_idx)
+            panels.append(text_panel(
+                text, word_weights,
+                title=f"Sample {i} — pred: {predicted_label}",
+                confidence=confidence,
+            ))
+
+        contributions = [
+            FeatureContribution(feature=feat, weight=totals[cn][feat] / counts[cn][feat], label=cn)
+            for cn in class_names
+            for feat in totals[cn]
+        ]
+
+        return ExplanationResult(
+            mode="global", method="lime", task=model.task,
+            target_name=dataset.target_name, contributions=contributions,
+            base_values=base_values, global_samples=n_samples,
+            image_panels=panels,
+        )
+
+    def _explain_text_local(
+        self, model: ModelAdapter, instance: Dataset, dataset: Dataset
+    ) -> ExplanationResult:
+        """LIME local explanation for text classification.
+
+        Args:
+            model: HfAdapter (or any adapter with predict_proba accepting list[str]).
+            instance: TextDataset with a single text to explain.
+            dataset: TextDataset used for background base values.
+
+        Returns:
+            ExplanationResult with one image_panel and word-level contributions.
+        """
+        from lime.lime_text import LimeTextExplainer
+
+        from pulsetrace.data.text_dataset import TextDataset
+
+        from .text_utils import text_panel
+
+        assert isinstance(instance, TextDataset)
+        assert isinstance(dataset, TextDataset)
+
+        predict_fn = model.predict_proba  # type: ignore[arg-type]
+        text = instance.texts[0]
+
+        proba = predict_fn([text])[0]
+        n_classes = len(proba)
+        predicted_idx = int(np.argmax(proba))
+        confidence = float(proba[predicted_idx])
+
+        ds_classes = dataset.classes if dataset.classes is not None else np.array([])
+        if len(ds_classes) == n_classes:
+            class_names = [str(c) for c in ds_classes]
+        else:
+            class_names = [str(i) for i in range(n_classes)]
+        predicted_label = class_names[predicted_idx]
+
+        lime_exp = LimeTextExplainer(class_names=class_names)
+        exp = lime_exp.explain_instance(
+            text,
+            predict_fn,
+            num_features=self.config.num_features,
+            labels=list(range(n_classes)),
+        )
+
+        word_weights = exp.as_list(label=predicted_idx)
+        contributions = [
+            FeatureContribution(feature=feat, weight=weight, label=predicted_label)
+            for feat, weight in word_weights
+        ]
+
+        bg_texts = dataset.texts[: min(20, len(dataset))]
+        bg_proba = predict_fn(bg_texts)
+        base_values: dict[str | int | None, float] = {
+            class_names[ci]: float(np.mean(bg_proba[:, ci])) for ci in range(n_classes)
+        }
+
+        panel = text_panel(
+            text, word_weights,
+            title=f"pred: {predicted_label}",
+            confidence=confidence,
+        )
+
+        return ExplanationResult(
+            mode="local", method="lime", task=model.task,
+            target_name=dataset.target_name, contributions=contributions,
+            base_values=base_values,
+            image_panels=[panel],
         )
 
     # ------------------------------------------------------------------
@@ -310,11 +557,14 @@ class LimeExplainer(BaseExplainer):
 
     def explain_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
         from pulsetrace.data.image_dataset import ImageDataset
+        from pulsetrace.data.text_dataset import TextDataset
         from pulsetrace.data.timeseries_dataset import TimeSeriesDataset
         if isinstance(dataset, ImageDataset):
             return self._explain_image_global(model, dataset)
         if isinstance(dataset, TimeSeriesDataset):
             return self._explain_ts_global(model, dataset)
+        if isinstance(dataset, TextDataset):
+            return self._explain_text_global(model, dataset)
         return self._explain_tabular_global(model, dataset)
 
     def _explain_tabular_global(self, model: ModelAdapter, dataset: Dataset) -> ExplanationResult:
@@ -404,11 +654,14 @@ class LimeExplainer(BaseExplainer):
         self, model: ModelAdapter, instance: Dataset, dataset: Dataset
     ) -> ExplanationResult:
         from pulsetrace.data.image_dataset import ImageDataset
+        from pulsetrace.data.text_dataset import TextDataset
         from pulsetrace.data.timeseries_dataset import TimeSeriesDataset
         if isinstance(dataset, ImageDataset):
             return self._explain_image_local(model, instance, dataset)
         if isinstance(dataset, TimeSeriesDataset):
             return self._explain_ts_local(model, instance, dataset)
+        if isinstance(dataset, TextDataset):
+            return self._explain_text_local(model, instance, dataset)
         return self._explain_tabular_local(model, instance, dataset)
 
     def _explain_tabular_local(

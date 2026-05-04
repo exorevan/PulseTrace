@@ -1,0 +1,22 @@
+app:
+  mode: local
+  output_format: html
+
+model:
+  type: hf
+  path_or_name: "distilbert-base-uncased-finetuned-sst-2-english"
+  labels: ["negative", "positive"]
+
+dataset:
+  type: text
+  path: datasets/sst2_sample
+
+explainer:
+  type: shap
+  num_features: 10
+
+local:
+  dataset:
+    type: text
+    path: datasets/sst2_local
+    only_x: true

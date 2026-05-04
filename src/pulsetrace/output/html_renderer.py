@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from itertools import groupby
+from pathlib import Path
 
 from pulsetrace.explainers.result import ExplanationResult, FeatureContribution
 
@@ -9,8 +11,14 @@ _SCALE = 0.5  # weight at which bar reaches 100% width
 
 
 def render(result: ExplanationResult) -> None:
-    """Print an ExplanationResult as a self-contained HTML page to stdout."""
-    print(_build_html(result))
+    """Write an ExplanationResult as a self-contained HTML file under outputs/."""
+    out_dir = Path("outputs")
+    out_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = out_dir / f"{result.method}_{result.mode}_{result.task}_{timestamp}.html"
+    filename.write_text(_build_html(result), encoding="utf-8")
+    print(f"  {result.method.upper()} | mode={result.mode} | task={result.task}")
+    print(f"HTML saved -> {filename}")
 
 
 def _param_name(feature: str) -> str:
@@ -91,14 +99,54 @@ def _section_html(label: str | int | None, contributions: list[FeatureContributi
 """
 
 
+def _panels_html(panels: list) -> str:
+    """Render a list of ImagePanel objects as a responsive image gallery."""
+    items = []
+    for p in panels:
+        conf_str = (
+            f'<span class="conf">{p.confidence:.2%}</span>' if p.confidence is not None else ""
+        )
+        items.append(
+            f'<div class="panel">'
+            f'<div class="panel-title">{p.title}{conf_str}</div>'
+            f'<div class="img-pair">'
+            f'<div class="img-wrap"><div class="img-label">Original</div>'
+            f'<img class="xai-img" src="data:image/png;base64,{p.original_b64}"></div>'
+            f'<div class="img-wrap"><div class="img-label">Explanation</div>'
+            f'<img class="xai-img" src="data:image/png;base64,{p.explanation_b64}"></div>'
+            f'</div>'
+            f'</div>'
+        )
+    legend = (
+        '<div class="legend">'
+        '<span class="legend-pos">&#9632; raises result</span>'
+        '<span class="legend-neg">&#9632; lowers result</span>'
+        '</div>'
+    )
+    return legend + '<div class="panel-grid">' + "\n".join(items) + "</div>"
+
+
+def _base_meta(base_values: dict | None) -> str:
+    if not base_values:
+        return ""
+    parts = []
+    for k, v in base_values.items():
+        label = "base" if k is None else f"base[{k}]"
+        parts.append(f'<span class="meta-item">{label}: {v:+.4f}</span>')
+    return " ".join(parts)
+
+
 def _build_html(result: ExplanationResult) -> str:
     samples_line = (
         f'<span class="meta-item">samples: {result.global_samples}</span>'
         if result.global_samples is not None
         else ""
     )
+    base_line = _base_meta(result.base_values)
 
-    if result.task == "regression":
+    if result.image_panels:
+        body = _panels_html(result.image_panels)
+    elif result.task == "regression":
         base = result.base_values.get(None) if result.base_values else None
         body = _section_html(None, result.contributions, base)
     else:
@@ -175,6 +223,35 @@ def _build_html(result: ExplanationResult) -> str:
       border-radius: 6px;
       transition: width 0.2s;
     }}
+    .legend {{ display: flex; gap: 16px; margin-bottom: 14px; font-size: 0.85rem; }}
+    .legend-pos {{ color: #27ae60; font-weight: 600; }}
+    .legend-neg {{ color: #c0392b; font-weight: 600; }}
+    .panel-grid {{ display: flex; flex-wrap: wrap; gap: 20px; }}
+    .panel {{
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }}
+    .panel-title {{
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }}
+    .conf {{ font-weight: 400; font-size: 0.82rem; color: #27ae60; margin-left: 8px; }}
+    .img-pair {{ display: flex; gap: 10px; }}
+    .img-wrap {{ display: flex; flex-direction: column; align-items: center; gap: 4px; }}
+    .img-label {{ font-size: 0.75rem; color: #888; }}
+    .xai-img {{
+      max-width: 320px;
+      max-height: 200px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 4px;
+      image-rendering: auto;
+    }}
   </style>
 </head>
 <body>
@@ -183,6 +260,7 @@ def _build_html(result: ExplanationResult) -> str:
     <div class="meta">
       <span class="meta-item">target: {result.target_name}</span>
       {samples_line}
+      {base_line}
     </div>
   </header>
   <div class="section">

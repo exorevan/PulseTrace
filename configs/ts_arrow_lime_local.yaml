@@ -1,0 +1,28 @@
+app:
+  mode: local
+  output_format: html
+
+logging:
+  level: INFO
+
+model:
+  type: sklearn
+  path: weights/ts_arrow_mlp.pkl
+
+dataset:
+  type: timeseries
+  path: datasets/ts_arrow_head_train.npy
+  n_timesteps: 251
+
+explainer:
+  type: lime
+  num_features: 10
+  num_samples: 1000
+  n_segments: 10
+
+local:
+  dataset:
+    type: timeseries
+    path: datasets/ts_arrow_head_sample.npy
+    only_x: true
+    n_timesteps: 251

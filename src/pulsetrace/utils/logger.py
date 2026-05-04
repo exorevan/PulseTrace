@@ -18,3 +18,4 @@ def setup_logging(config: LoggingConfig) -> None:
         handlers=handlers,
         force=True,
     )
+    logging.getLogger("shap").setLevel(logging.WARNING)

@@ -341,7 +341,9 @@ class TestJsonOutput:
 
 class TestHtmlOutput:
     def test_html_classification(self, capsys):
-        """HTML output must be a parseable page with expected content."""
+        """HTML output must be written to a self-contained file with expected content."""
+        from pathlib import Path
+
         from pulsetrace.config import load_config
         from pulsetrace.adapters import build_adapter
         from pulsetrace.data import load_dataset
@@ -357,14 +359,20 @@ class TestHtmlOutput:
         capsys.readouterr()
         render(result, output_format="html")
         out = capsys.readouterr().out
+        assert "HTML saved ->" in out
 
-        assert "<!DOCTYPE html>" in out
-        assert "shap" in out.lower()
-        assert "classification" in out
-        assert "bar-fill" in out
-        assert len(out) > 500
+        filepath = Path(out.strip().split("HTML saved -> ")[-1])
+        html = filepath.read_text(encoding="utf-8")
+
+        assert "<!DOCTYPE html>" in html
+        assert "shap" in html.lower()
+        assert "classification" in html
+        assert "bar-fill" in html
+        assert len(html) > 500
 
     def test_html_regression(self, capsys):
+        from pathlib import Path
+
         from pulsetrace.config import load_config
         from pulsetrace.adapters import build_adapter
         from pulsetrace.data import load_dataset
@@ -380,8 +388,12 @@ class TestHtmlOutput:
         capsys.readouterr()
         render(result, output_format="html")
         out = capsys.readouterr().out
+        assert "HTML saved ->" in out
 
-        assert "<!DOCTYPE html>" in out
-        assert "regression" in out
-        assert "bar-fill" in out
-        assert "Base value:" in out
+        filepath = Path(out.strip().split("HTML saved -> ")[-1])
+        html = filepath.read_text(encoding="utf-8")
+
+        assert "<!DOCTYPE html>" in html
+        assert "regression" in html
+        assert "bar-fill" in html
+        assert "Base value:" in html

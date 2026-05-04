@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pulsetrace.config.schema import (
+    HfModelConfig,
     KerasModelConfig,
     ModelConfig,
     SklearnModelConfig,
@@ -8,6 +9,7 @@ from pulsetrace.config.schema import (
 )
 
 from .base import ModelAdapter
+from .huggingface import HfAdapter
 from .keras import KerasAdapter
 from .pytorch import PyTorchAdapter
 from .sklearn import SklearnAdapter
@@ -22,6 +24,9 @@ def build_adapter(config: ModelConfig) -> ModelAdapter:
         return SklearnAdapter(model)
 
     if isinstance(config, KerasModelConfig):
+        import os
+
+        os.environ.setdefault("KERAS_BACKEND", "torch")
         import keras
 
         model = keras.models.load_model(config.path)
@@ -54,11 +59,15 @@ def build_adapter(config: ModelConfig) -> ModelAdapter:
 
         return PyTorchAdapter(model, task=config.task)
 
+    if isinstance(config, HfModelConfig):
+        return HfAdapter(config)
+
     raise ValueError(f"Unhandled model config type: {type(config)}")
 
 
 __all__ = [
     "ModelAdapter",
+    "HfAdapter",
     "SklearnAdapter",
     "KerasAdapter",
     "PyTorchAdapter",
